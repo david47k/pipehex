@@ -1,0 +1,85 @@
+
+   
+TO DO:
+-- Add animation to rotation
+
+-- Solution finder::: 
+   For any two touching tiles, there are only certain rotations that make sense (either connected or disconnected)
+   Apply this to each pairing, and it will greatly reduce the combinations
+
+
+// to begin with, we will use h=64 w=56 grid
+
+
+
+
+
+Faster rendering using bitmaps???
+Alternate: Render using individual SVGs/Imgs (so they can be updated individually)
+
+4x   Looped/Locked
+6x   Direction
+12x  Shapes: Single, Narrow, Wide, E, Straight, NarrowYLeft, NarrowYRight, WideY, K, Plane, X, Fiver
+      ^^^ Renderable in different colours
+= 12 shapes (14 including blank and a sixer)
+
+6x14 = 84 tiles, nice!
+--- we can create the 6 directions by simply rotating each block by multiples of 60 degrees.
+--- so that just leaves the 14 tiles for us to draw
+
+
+from boxbopper I discovered that we can resize down OK, but not up.
+so we used block sizes of 64,128,192,256.
+we'd need at least 32,64,128,256 (i think 512 for 4k monitors and 5x5!!!)
+we are using 'point up' hexagons, so they are taller than they are wider.
+so for h=32, w=28 (27.7)
+   for h=64, w=56 (55.4)
+   for h=128, w=111 (110.8)
+probably easiest if we just round up every time, if we center each block horizontally/zoom slightly/distort it shouldn't look too bad...?
+for h=256, w=222 (221.7)
+
+a 40x40 canvas at 32h 28w would be 1120 x 1280px.
+we could also have a 2x mode, or user-selectable resolution, to scale up.
+so maybe even 16x14. would be nice and small.
+
+hexagon_ratio = 0.8660254
+
+Can either use a grid, and update each image specifically, or use a canvas, and
+blit to each section specifically. Canvas should be quicker.
+
+Then the question of whether using layers is worth it...
+BackgroundLayer (Hex shape with Looped/Locked applied)
+
+
+PieceLayer (Mask combined with ColorLayer)
+ColorLayer
+CombinedLayer (Piece + Color)
+
+Most of the time the piece remains the same, and the background remains the same.
+Most likely thing to change is 1 piece, or the color of a lot.
+So layers makes sense.
+
+40x40 is a lot!!!!! (1600)
+
+const blocksize = 16;
+const blocksize_v = 20;
+
+v = virtual_grid(gridw, gridh)
+{ locked = false, looped = false, color = white, shape = SHAPE, rotation = 0/1/2/3/4/5 }
+v.set()
+v.rotate(ccw=0)
+
+c_tiles = Canvas(blocksize * width, blocksize * hexadjust * height)
+c_pieces
+c_colors
+c_flattened_colors_pieces
+
+get_pixel_xy(gridx, gridy) -> (x,y)
+
+SetPieceAndRotation(gridx, gridy, piece, rotation)
+SetTileType(gridx, gridy, locked/unlocked/looped/unlooped)
+SetPieceColor(gridx, gridy, color)
+
+
+Can encode pieces as SVG, render them directly to SVG files, then to PNG etc.
+
