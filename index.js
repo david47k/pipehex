@@ -1,3 +1,4 @@
+/* Copyright 2022 David Atkinson */
 
 import { GameManager } from './game-manager.js';
 

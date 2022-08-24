@@ -1,3 +1,4 @@
+/* Copyright 2022 David Atkinson */
 
 const prefix = 'phex_';
 export default {

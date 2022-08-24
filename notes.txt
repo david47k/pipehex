@@ -3,6 +3,9 @@
 TO DO:
 -- Add animation to rotation
 
+-- Save show_timer and show_fps
+
+
 -- Solution finder::: 
    For any two touching tiles, there are only certain rotations that make sense (either connected or disconnected)
    Apply this to each pairing, and it will greatly reduce the combinations

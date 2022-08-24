@@ -1,3 +1,4 @@
+/* Copyright 2022 David Atkinson */
 
 import CONFIG from './config.js';
 import { View, PALETTE_SIZE } from './view.js';
@@ -146,8 +147,8 @@ export class Timer {
 	}	
 }
 
-export function timestring_from_secs(secs) {
-	let s = Math.trunc(secs);
+export function timestring_from_ms(ms) {
+	let s = Math.trunc(ms / 1000);
 	let m = Math.trunc(s / 60);
 	s -= (m * 60);
 	let ss = s.toString();
@@ -427,7 +428,7 @@ export class Game {
 		}
 		return tileset;
 	}
-	get_connected_tiles(px,py,recursive) {
+	get_connected_tiles_breadth_first(px,py,recursive) {
 		// return a set of [x,y] of tiles that are connected to this one
 		let stack = [[px,py,null]];
 		let tileset = new Set();
@@ -463,6 +464,59 @@ export class Game {
 		}
 		return [tileset,looped_set];
 	}
+	get_connected_tiles(px,py,recursive) {		// depth first, easier to find loops
+		// return a set of [x,y] of tiles that are connected to this one
+		let stack = [[px,py,null,0]];
+		let tileset = new Set();
+		tileset.add(py*this.puzzle_w+px);
+		let looped_set = new Set();
+		
+		while(stack.length > 0) {
+			let popped = stack.pop();
+			let x = popped[0];
+			let y = popped[1];
+			let fromangle = popped[2];
+			let angle = popped[3];
+			
+			if(angle>5)	continue;
+
+			// add ourselves back on to the stack, with the next angle
+			stack.push([x,y,fromangle,angle+1]);
+			if(fromangle != null && fromangle == angle) continue; // don't check where we came from
+			if(!this.grid[y][x].conns[angle]) continue;	// if we're not connected, continue
+			let nxy = this.get_gxy_at_angle(x,y,angle);	// get tile that's at that angle
+			if(nxy == null) continue; // no tile there
+			let [nx,ny] = nxy;
+			if(this.grid[ny][nx].conns[this.invertAngle(angle)]) {
+				// we have a connection!
+				// check if it's already stored
+				if(tileset.has(ny*this.puzzle_w+nx)) {
+					// the stack should have all the looped tiles in it, between 
+					// where the stack has nx,ny, and the end of stack.
+
+					// find the start point
+					let idx=0;
+					for(idx=0; idx<stack.length; idx++) {
+						if(stack[idx][0] == nx && stack[idx][1] == ny) break;
+					}
+					if(idx==stack.length) {
+						// console.log("unable to find looped tile in stack",nx,ny);
+					} else {
+						// copy the whole looped section to looped_set
+						for(let i=idx; i<stack.length; i++) {
+							looped_set.add(stack[i][1]*this.puzzle_w+stack[i][0]);
+						}
+					}
+				} else {
+					tileset.add(ny*this.puzzle_w+nx);
+					if(recursive) {
+						stack.push([nx,ny,this.invertAngle(angle),0]);
+					}
+				}
+			}
+		}
+		return [tileset,looped_set];
+	}
 }
 
 
@@ -489,7 +543,7 @@ export class GameManager {
 		this.puzzle_type = Storage.loadStr('puzzle_type','5');
 		this.puzzle_idx = Storage.loadInt('puzzle_idx'+this.puzzle_type,0);
 		this.showStats = false;
-		this.showFPS = true;
+		this.showFPS = false;
 		this.showTimer = true;
 		
 		readFile('/puzzles5.csv', a => this.PUZZLES['5'] = a );
@@ -503,6 +557,7 @@ export class GameManager {
 		this.renderSet = new Set();
 		this.loopedSet = new Set();
 		this.game = this.loadGame(parseInt(this.puzzle_type));
+		this.updateStats();
 		
 		this.view = new View(this.game.puzzle_w,this.game.puzzle_h);
 
@@ -598,8 +653,7 @@ export class GameManager {
 	updateLoopSet() {
 		const prevSet = this.loopedSet;
 		this.loopedSet = new Set();
-		// we can use get_connected_tiles and read the looped set
-		
+		// we can use get_connected_tiles and read the looped set		
 		// TO DO: have a more efficient mode, where we only look at tiles surounding the clicked tile
 
 		let tiles = [];
@@ -618,10 +672,8 @@ export class GameManager {
 					tiles[midx] = -1;
 				}
 			}
-			//tiles = tiles.filter(el => el != -1);
 			for(const lt of looped_set) {
-				console.log('lt',lt);
-				//let [ltx,lty] = this.game.xy_from_idx(lt);
+				//console.log('lt',lt);
 				this.loopedSet.add(lt);
 			}
 		}
@@ -678,10 +730,10 @@ export class GameManager {
 		let best3 = 'tbd';
 		let best5 = 'tbd';
 		let best10 = 'tbd'
-		if(hs.length>=1)  best = timestring_from_secs(hs[0]);
-		if(hs.length>=3)  best3 = timestring_from_secs(hs.slice(0,3).reduce( (p, c) => p + c, 0 )/3.0);
-		if(hs.length>=5)  best5 = timestring_from_secs(hs.slice(0,5).reduce( (p, c) => p + c, 0 )/5.0);
-		if(hs.length>=10) best10 = timestring_from_secs(hs.slice(0,10).reduce( (p, c) => p + c, 0 )/10.0);
+		if(hs.length>=1)  best = timestring_from_ms(hs[0]);
+		if(hs.length>=3)  best3 = timestring_from_ms(hs.slice(0,3).reduce( (p, c) => p + c, 0 )/3.0);
+		if(hs.length>=5)  best5 = timestring_from_ms(hs.slice(0,5).reduce( (p, c) => p + c, 0 )/5.0);
+		if(hs.length>=10) best10 = timestring_from_ms(hs.slice(0,10).reduce( (p, c) => p + c, 0 )/10.0);
 		this.stats = { puztype: puztype, num: hs.length.toString(), best: best, best3: best3, best5: best5, best10: best10 };
 	}
 	on_win() {
@@ -699,7 +751,7 @@ export class GameManager {
 	}
 	click(x,y,buttons) {
 		if(!this.game.won) {
-			if(buttons==1) this.game.grid[y][x].rotate_cw();
+			if(buttons==0 || buttons==1) this.game.grid[y][x].rotate_cw();
 			else if(buttons==2) this.game.grid[y][x].rotate_ccw();
 			this.renderSet.add(this.game.idx_from_xy(x,y));
 			this.game.timer.start(this.game.last_ts);
@@ -739,7 +791,7 @@ export class GameManager {
 					// TODO: should ideally pick a colour that is dissimilar to surrounding colours
 				}
 			}
-			console.log('tileset size:',tileset.size);
+			//console.log('tileset size:',tileset.size);
 			tileset.forEach((val) => {
 				let tsy = Math.trunc(val/this.game.puzzle_w);
 				let tsx = val%this.game.puzzle_w;

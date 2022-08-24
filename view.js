@@ -1,7 +1,7 @@
+/* Copyright 2022 David Atkinson */
 
 import { Tile, Game } from "./game-manager.js";
 import Storage from "./storage.js";
-import { timestring_from_secs } from "./game-manager.js";
 const getRange = length => [...Array(length).keys()];
 
 
@@ -37,12 +37,12 @@ export class View {
 		this.alwaysRenderAll = 0;
 		this.canvasCache = new Map();
 		
-		this.srcImage = new Image();   // Create new img element
+/*		this.srcImage = new Image();   // Create new img element
 		this.srcImage.loading = "eager";
 		this.srcImage.addEventListener('load', function() {
 			console.log("image loaded"); 
 			document.gameManager.view.setUp(document.gameManager.game.puzzle_w, document.gameManager.game.puzzle_h);
-		});
+		}); */
 		
 		// the resize event will need fixing so it redraws everything
 		// i.e. gm.paintAll();
@@ -53,7 +53,7 @@ export class View {
 	}
 
 	setUp(gameWidth, gameHeight) {	// gameWidth and gameHeight are in grid units
-		console.log('setting up ...')
+		console.log('setting up...')
 
 		let { width, height } = this.container.getBoundingClientRect();
 		height = document.documentElement.clientHeight - 15; // override the above height estimate: 10px padding 2px border 3px unknown
@@ -64,7 +64,7 @@ export class View {
 		//this.unitOnScreen = Math.floor(Math.min( width / gameWidth,	height / gameHeight ));
 		//this.unitOnScreen = ( Math.floor(this.unitOnScreen / 4) * 4 );	// canvas drawImage is crappy, reduce aliasing artifacts
 		//if(this.unitOnScreen > 256) this.unitOnScreen = 256; // reducing aliasing artifacts - can also split src into individual sprites
-		console.log("screen unit:", this.unitOnScreenW, " ", this.unitOnScreenH, " ", this.unitOnScreenVO);
+		//console.log("screen unit:", this.unitOnScreenW, " ", this.unitOnScreenH, " ", this.unitOnScreenVO);
 
 		// Because ImageBitmap options & imageSmoothingQuality aren't yet widely supported, and OffscreenCanvas isn't widely supported,
 		// we are using pre-sized images. we can scale down and it looks OK, but we can't scale up.
@@ -73,9 +73,9 @@ export class View {
 		if(this.srcBlockH != 64) {
 			this.srcBlockH = 64;
 			this.srcBlockW = 56;
-			this.srcImage.src = 'tiles_56x64.png';
+/*			this.srcImage.src = 'tiles_56x64.png';
 			console.log('loading src image');
-			return;
+			return; */
 		}
 
 		// remove the old canvas, if it exists
@@ -90,11 +90,10 @@ export class View {
 		this.context = canvas.getContext('2d');
 		canvas.setAttribute('width',gameWidth * this.unitOnScreenW + Math.floor(this.unitOnScreenW/2));
 		canvas.setAttribute('height',(gameHeight + 1) * this.unitOnScreenVO - (this.unitOnScreenH/2));
-		console.log('new canvas created');
+		//console.log('new canvas created');
 		
 		// render (update stats display) with current stats
-		document.gameManager.updateStats();
-		this.renderStats(document.gameManager.stats);
+		this.renderStats();
 	}
 	
 	renderImg(dx, dy, sx, sy) {
@@ -102,7 +101,8 @@ export class View {
 		sy = sy * this.srcBlockH;
 		if(dy%2==1) dx += 0.5;
 		
-		if(this.srcImage.complete && this.context) {
+/*		if(this.srcImage.complete && this.context) { */
+		if(this.context) {
 			this.context.drawImage(this.srcImage,
 				sx,sy,
 				this.srcBlockW,this.srcBlockH,
@@ -161,13 +161,7 @@ export class View {
 	}
 
 	getLineCanvas(conns, colorIdx) {
-		// There are two ways of doing this
-		// One is to use an existing line image, then manually mask it with the color
-		// (as 2d context doesn't have masking functions).
-		// The second is to use 2d context line drawing functions.
-		// (The third is to use SVG, but we assume this is the same/slower than using the 2d context functions).
-		// There is also a Path2D api, which allows caching of paths themselves...
-		// create a source image -- i've had problems with offscreen canvas, so hopefully this works
+		// Use 2d context line drawing functions.
 
 		// check if it is in cache
 		// create key
@@ -181,15 +175,14 @@ export class View {
 		}
 
 		let canvas = document.createElement('canvas');
-		//document.getElementById('drawarea').appendChild(canvas);
 		let ctx = canvas.getContext('2d');
 		let width = this.unitOnScreenW;
 		let height = this.unitOnScreenH;
 		canvas.setAttribute('width',width);
 		canvas.setAttribute('height',height);
-		//this.unitOnScreenH = 64;
-		//this.unitOnScreenVO = 48;
-		//this.unitOnScreenW = 56;
+		ctx.lineCap = 'butt';
+		ctx.lineJoin = 'bevel';					// will this help with Safari-iOS ugly butts?
+		//ctx.imageSmoothingQuality = 'high'; 
 		ctx.clearRect(0,0,width,height);
 		ctx.fillStyle = PALETTE[colorIdx];
 		ctx.strokeStyle = PALETTE[colorIdx];
@@ -210,7 +203,6 @@ export class View {
 			else if(i==4) { dy = height * 1 / 8; dx = width * 1 / 4; }
 			else if(i==5) { dy = height * 1 / 8; dx = width * 3 / 4; }
 			ctx.lineTo(dx,dy);
-			ctx.closePath();
 			ctx.stroke();
 		}
 		// If it's a single, draw a larger hub circle
@@ -228,15 +220,15 @@ export class View {
 	}
 
 	renderStats(stats) {
-		document.getElementById('stats_size').innerHTML = stats.puztype;
-		document.getElementById('stats_num').innerHTML = stats.num;
-		document.getElementById('stats_best').innerHTML = stats.best;
-		document.getElementById('stats_best3').innerHTML = stats.best3;
-		document.getElementById('stats_best5').innerHTML = stats.best5;
-		document.getElementById('stats_best10').innerHTML = stats.best10;
-
-		// Last game:
-		// Number of puzzles to go:		
+		if(document.gameManager && document.gameManager.stats) {
+			const stats = document.gameManager.stats;
+			document.getElementById('stats_size').innerHTML = stats.puztype;
+			document.getElementById('stats_num').innerHTML = stats.num;
+			document.getElementById('stats_best').innerHTML = stats.best;
+			document.getElementById('stats_best3').innerHTML = stats.best3;
+			document.getElementById('stats_best5').innerHTML = stats.best5;
+			document.getElementById('stats_best10').innerHTML = stats.best10;
+		}
 	}
 	render() {
 		let gm = document.gameManager;
@@ -257,7 +249,7 @@ export class View {
 				
 		for (const idx of gm.renderSet) {
 			const [x,y] = gm.game.xy_from_idx(idx);
-			if(this.drawMethod == 0) {
+			if(this.drawMethod == 0) {	// old draw method for using an image as a source
 				this.renderImg(x,y,0,0);		// background hexagon
 				this.renderImg(x,y,game.grid[y][x].angle,game.grid[y][x].shape);	// line shape
 			} else if(this.drawMethod == 1) {
@@ -287,9 +279,11 @@ export class View {
 		// update fps
 		if(document.gameManager.showFPS) {
 			let fps = Math.floor(1000.0 / (ts - game.last_ts));
-			game.last_ts = ts;
-			document.getElementById("fps_text").innerHTML = "" + fps;
+			document.getElementById("fps_text").innerHTML = '' + fps;
 		}
+		
+		// update cached timestamp
+		game.last_ts = ts;
 
 		// update puzzle title
 		document.getElementById("puzzle_title").innerHTML = game.title;
