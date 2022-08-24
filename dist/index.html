@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PIPEHEX</title>
+    <!-- Copyright 2022 David Atkinson -->
+    <style>
+      * { box-sizing: border-box; outline: 0; margin: 0; }
+      body { -webkit-touch-callout: none !important;
+        touch-action: manipulation; } /* safari fixes */
+      a { -webkit-user-select: none !important; } /* safari fix */
+      body { background: #000; color: #ddd; font-family: sans-serif; }
+      button,div,span { font-family: sans-serif; font-size: 12pt; font-weight: normal; }
+      #menu { background-color: #789; color: #ddd; }
+      #menu>div { display: inline-block; background-color: #789; padding: 0.2em 0.5em; }
+      #settings_menu { background-color: #798; color: #ddd; }
+      #settings_menu>div { padding: 0.2em 0.5em; }
+      #stats { background-color: #879; color: #ddd; }
+      #stats>div { padding: 0.2em 0.5em; }
+      .hide { display: none; }
+      #menu>div.hide { display: none; }
+      #menu_time { min-width: 5em; }
+      button { color: #ddd; background-color: #789; padding:4px 8px; border-style: solid; border-width: 1px; border-color: #9ab #9ab #567 #567; margin: 0; }
+      button[aria-pressed="true"] {
+          border-color: #567 #567 #9ab #9ab;
+          background-color: #567; }
+      button:hover { background-color: #9ab; color: #fff; } 
+      button:hover[aria-pressed="true"] { background-color: #89a; }
+          
+      button:disabled { background-color: #888; }                                    
+      button>svg {padding: 0; margin: 0;  width: 100%; height: 100%; }
+      .large { font-size: 18pt; }
+      .boltalic { font-weight: bold; font-style: italic; }
+      .mw10 { min-width: 10em; display: inline-block; }
+      .mw6 { min-width: 6em; display: inline-block; }
+      .mw4 { min-width: 4em; display: inline-block; }
+      .mw3 { min-width: 3em; display: inline-block; }
+    </style>
+  </head>
+  <body>
+    <div id="pre"><noscript>This page contains javascript content, please enable javascript in your browser.</noscript></div>
+    <div id="menu">
+      <div id="menu_title" class="boltalic">PIPEHEX</div>
+      <div id="menu_settings"><button id="settings_button" aria-pressed="false">Settings</button></div>
+      <div id="menu_puzzle_title"><span id="puzzle_title"></span></div>
+      <div id="menu_restart"><button id="restart_button">Restart</button></div>
+      <div id="menu_time">Time: <span id="timer_text" class="mw3"></span></div>
+      <div id="menu_pause"><button id="pause" aria-pressed="false">Pause</button></button></div>
+      <div id="menu_stats"><button id="stats_button" aria-pressed="false">Stats</button></div>
+      <div id="menu_fps" class="hide">FPS: <span id="fps_text" class="mw3"></span></div>
+    </div>
+    <div id="settings_menu" class="hide">
+      <div id="settings_title" class="boltalic">Settings</div>
+      <div id="settings_game_size">Game size: 
+        <button id="game_size_5x5" data="5">5x5</button>
+        <button id="game_size_10x10" data="10">10x10</button>
+        <button id="game_size_15x15" data="15">15x15</button>
+        <button id="game_size_20x20" data="20">20x20</button>
+        <button id="game_size_30x30" data="30">30x30</button>
+        <button id="game_size_40x40" data="40">40x40</button>        
+      </div>
+      <div>
+        <button id="prev_puzzle">Prev Puzzle</button>
+        <button class="next_puzzle">Next Puzzle</button>
+      </div>
+      <div>
+        <button id="show_fps" aria-pressed="false">Show FPS</button>
+        <button id="show_timer" aria-pressed="true">Show Timer</button>
+      </div>
+    </div>
+    <div id="winner" class="hide">
+      <span class="large">Solved in </span><span id="wintime" class="large"></span><br>
+      <button class="next_puzzle">Next Puzzle</button><br>
+    </div>
+    <div id="stats" class="hide">
+      <div class="boltalic">Statistics</div>
+      <div>
+        For puzzles of <span id="stats_size"></span>:<br>
+        <span class="mw10">Number solved </span><span id="stats_num"></span><br>
+        <span class="mw10">Best </span><span id="stats_best" class=""></span><br>
+        <span class="mw10">Avg of 3 </span><span id="stats_best3" class=""></span><br>
+        <span class="mw10">Avg of 5 </span><span id="stats_best5" class=""></span><br>
+        <span class="mw10">Avg of 10 </span><span id="stats_best10" class=""></span><br>
+      </div>
+    </div>
+    <div id="container"></div>
+    <script src="main.js" type="module"></script>
+  </body>
+</html>

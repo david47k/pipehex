@@ -1,0 +1,15 @@
+{
+  "name": "pipehex",
+  "version": "1.0.0",
+  "description": "Puzzle game.",
+  "main": "index.js",
+  "private": true,
+  "author": "David Atkinson <david47k@d47.co>",
+  "license": "All rights reserved.",
+  "dependencies": {
+    "webpack": "^5.74.0"
+  },
+  "devDependencies": {
+    "webpack-cli": "^4.10.0"
+  }
+}
