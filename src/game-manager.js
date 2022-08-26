@@ -2,8 +2,8 @@
 
 import CONFIG from './config.js';
 import { View, PALETTE_SIZE } from './view.js';
-import PUZZLES from './puzzles.js';
 import Storage from './storage.js';
+
 
 
 /*
@@ -20,9 +20,6 @@ import Storage from './storage.js';
 const angles = [ "E", "SE", "SW", "W", "NW", "NE" ];
 const shapes = [ "ZERO", "ONE", "TWO_NARROW", "TWO_WIDE", "TWO_STRAIGHT", "THREE_E", "THREE_Y_LEFT",
 	"THREE_Y_RIGHT", "THREE_Y_WIDE", "FOUR_K", "FOUR_PLANE", "FOUR_X", "FIVE", "SIX" ];
-
-// shape & rotation maps to connections
-const example_conns = [ 0, 0, 0, 1, 1, 1 ];	// type: ibool[6]
 
 const shape_match_arr = [
 	[ 0, 0, 0, 0, 0, 0 ], // zero
@@ -41,6 +38,10 @@ const shape_match_arr = [
     [ 1, 1, 1, 1, 1, 1 ], // six         
 ];
 
+/** @param {any} a
+ *  @param {any} b 
+ *  @returns {boolean}
+ */
 function array_equal(a, b) {
     if(Array.isArray(a) && Array.isArray(b)) {
 		return a.length === b.length && a.every((v, i) => array_equal(v,b[i]));
@@ -49,18 +50,25 @@ function array_equal(a, b) {
 	}
 }
 
+/** @param {number[]} conns_a
+ *  @param {number[]} conns_b 
+ *  @returns {{m:boolean, a:number}}
+ */
 function shape_match(conns_a, conns_b) { // type ibool[6], ibool[6]
 	var rconns = conns_b;
 	for (var i=0; i<6; i++) {
 		if(array_equal(rconns, conns_a)) {
-			return [ true, i ];
+			return { m: true, a:i };
 		}
 		rconns = [ rconns[5], rconns[0], rconns[1], rconns[2], rconns[3], rconns[4] ];
 	}
 		
-	return [ false, 0 ];
+	return { m: false, a:0 };
 }
 	
+/** @param {number[]} conns
+ *  @returns {{s:number,a:number}}
+ */
 function conns_to_shapeangle(conns) {		// conns type: bool[6]
 	let pipe_count = 0;
 	let angle_idx = 0;
@@ -81,10 +89,10 @@ function conns_to_shapeangle(conns) {		// conns type: bool[6]
 		shape_idx = 1; // angle determined above
 	} else if (pipe_count>=2 && pipe_count <=5) {
 		for(let test_idx = 2; test_idx <= 12; test_idx++) {		
-			let [r,a] = shape_match(conns, shape_match_arr[test_idx]);
-			if(r==true) { 
+			const match_result = shape_match(conns, shape_match_arr[test_idx]);
+			if(match_result.m==true) { 
 				shape_idx = test_idx;
-				angle_idx = a;
+				angle_idx = match_result.a;
 				break;
 			}
 		}
@@ -93,16 +101,27 @@ function conns_to_shapeangle(conns) {		// conns type: bool[6]
 		// angle_idx is set to 0
 	}
 
-	return [ shape_idx, angle_idx ];
+	return { s: shape_idx, a: angle_idx };
+}
+
+/** @param {number} ms */
+function timestringFrom(ms) {
+	let s = Math.trunc(ms / 1000);
+	const m = Math.trunc(s / 60);
+	s -= (m * 60);
+	let ss = s.toString();
+	if(ss.length < 2) ss = '0' + ss;
+	return m.toString() + ':' + ss;
 }
 
 
 export class Timer {
 	constructor({time = 0} = {}) {
 		this.time = time;
-		this.timestamp = null;
+		this.timestamp = 0;
 		this.running = false;
 	}
+	/** @param {number} ts */
 	start(ts) {
 		if(this.running) {
 			this.update(ts);
@@ -111,9 +130,10 @@ export class Timer {
 			this.running = true;
 		}
 	}
+	/** @param {number} ts */
 	stop(ts) {
 		if(this.running) {
-			this.time += ts - this.timestamp;
+			this.update(ts);
 			this.running = false;
 		}
 	}
@@ -121,46 +141,38 @@ export class Timer {
 		this.running = false;
 		this.time = 0;
 	}
+	/** @param {number} ms */
 	set_millis(ms) {
 		this.time = ms;
 	}
+	/** @param {number} ts */
 	update(ts) {
 		if(this.running) {
-			this.time += ts - this.timestamp;
+			const delta = ts - this.timestamp;
+			if(delta >= 0) {
+				this.time += delta;
+			} else {
+				console.log('time has gone backwards');
+			}
 			this.timestamp = ts;
 		}
 	}		
 	get_millis() {
 		return this.time;
 	}
-	get_timestring(ts) {
-		let t = this.time;
-		if(this.running) {
-			t += ts - this.timestamp;
-		}
-		let s = Math.trunc(t / 1000);
-		let m = Math.trunc(s / 60);
-		s -= (m * 60);
-		let ss = s.toString();
-		if(ss.length < 2) ss = '0' + ss;
-		return m.toString() + ':' + ss;
+	timestring() {
+		return timestringFrom(this.time);
 	}	
 }
 
-export function timestring_from_ms(ms) {
-	let s = Math.trunc(ms / 1000);
-	let m = Math.trunc(s / 60);
-	s -= (m * 60);
-	let ss = s.toString();
-	if(ss.length < 2) ss = '0' + ss;
-	return m.toString() + ':' + ss;	
-}
 
 export class Tile {
 	constructor( { conns = [coin_flip(), coin_flip(), coin_flip(), coin_flip(), coin_flip(), coin_flip()],
 					color = 0, isolated = true, locked = false, looped = false } = {} ) {
 		this.conns = conns;
-		[ this.shape, this.angle ] = conns_to_shapeangle(this.conns);
+		let cts_result = conns_to_shapeangle(this.conns);
+		this.shape = cts_result.s;
+		this.angle = cts_result.a;
 		this.color = color; 	// color type: colors_index
 		this.isolated = isolated;	// are we connected to any other tiles?
 		this.locked = locked;	//
@@ -188,10 +200,14 @@ export class Tile {
 			else this.angle=5;
 		}
 	}
+	/** @param {number[]} nconns */
 	setup(nconns) {
 		this.conns = nconns;
-		[ this.shape, this.angle ] = conns_to_shapeangle(this.conns);
+		const cts_result = conns_to_shapeangle(this.conns);
+		this.shape = cts_result.s;
+		this.angle = cts_result.a;
 	}
+	/** @param {Tile} tile */
 	equal(tile) {
 		this.conns.every((x,i) => x == tile.conns[i]);
 	}
@@ -201,6 +217,7 @@ function coin_flip() { // return 0 or 1
 	return Math.trunc(Math.random() * 2);
 }
 
+/** @param {number} n */
 function rand_inclusive(n) {
 	return Math.trunc(Math.random() * (n+1));
 }
@@ -208,15 +225,48 @@ function rand_inclusive(n) {
 let tile_sizes = [ [ 56, 64, 48 ], [ 42, 48, 36 ], [ 28, 32, 24 ] ];
 const BASE = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
 
+/** @typedef {{puzzle_w: number, puzzle_h: number, grid: null | Tile[][], sol_grid: null|Tile[][], won: boolean, title: string, timer: any }} GameLike */
+
+// destructuring alternative. overwrites the default values we've already assigned.
+// for(const [key, value] of Object.entries(params)) {
+//   Object.defineProperty(this, key, { value: value, writable: true });
+// }
+
+// destructuring alternative. uses params if provided, otherwise uses defaultParams
+// for(const [key, value] of Object.entries(defaultParams)) {
+//   if(params.hasOwn(key) Object.defineProperty(this, key, { value: Object.getOwnPropertyDescriptor(params, key), writable: true });
+//	 else Object.defineProperty(this, key, { value: value, writable: true });
+// }
+
+
 export class Game {
-	constructor({ puzzle_w=0, puzzle_h=0, grid = null, sol_grid = null, won = false, title = '(puzzle title)', timer = {time:0} } = {}) {
-		this.puzzle_w = puzzle_w;
-		this.puzzle_h = puzzle_h;
-		this.grid = this.new_game_grid(grid);
-		this.sol_grid = sol_grid;
-		this.won = won;
-		this.title = title;
-		this.timer = new Timer(timer);
+	/** @constructor
+	 *  @param {object} params
+	 * */
+	//constructor({ puzzle_w=0, puzzle_h=0, grid = null, sol_grid = null, won = false, title = '(puzzle title)', timer = {time:0} } = {}) {
+	constructor(params = {}) {
+		// these are the defaults, and will be used if not overriden by params
+		this.puzzle_w = 0;
+		this.puzzle_h = 0;
+		/** @type {Tile[][]|null} */
+		this.grid =  null;
+		/** @type {Tile[][]|null} */
+		this.sol_grid = null;
+		this.won = false;
+		this.title = '(puzzle title)';
+		this.timer = new Timer();
+		this.wintime  ='';
+		
+		// this is a funny way of avoiding jsdoc/ts destructuring type issues
+		for(const [key, value] of Object.entries(params)) {
+			if(params.hasOwnProperty(key)) Object.defineProperty(this, key, { value: Object.getOwnPropertyDescriptor(params, key).value, writable: true });
+		}
+
+		// re-juice these objects with the correct type
+		this.grid = this.new_game_grid(this.grid);
+		this.timer = new Timer(this.timer);
+		
+		// these values will override anything passed to us
 		this.tile_w = 56;
 		this.tile_h = 64;	// should be multiple of at least 8, probably 16 too...
 		this.tile_vo = this.tile_h * 3 / 4; // It will be 3/4 of tile_h (32 is one side, 64 is long radius, so 48 will be the voffset)
@@ -224,22 +274,28 @@ export class Game {
 		this.ts = 0;
 		this.winningAnimation = { started: false, start_ts: 0 };
 	}
-	tile_from_xy(x,y) {
-		return this.grid[y][x];
-	}
+	/** @param {number} idx
+	 *  @returns {Tile} */
 	tile_from_idx(idx) {
 		let y = ~~(idx/this.puzzle_w);	// works for 32-bit positive numbers
 		let x = idx%this.puzzle_w;
 		return this.grid[y][x];
 	}
+	/** @param {number} idx
+	 *  @returns {[number,number]} */
 	xy_from_idx(idx) {
 		let y = ~~(idx/this.puzzle_w);
 		let x = idx % this.puzzle_w;
 		return [x,y];
 	}
+	/** @param {number} x
+	 *  @param {number} y
+	 *  @returns {number} */
 	idx_from_xy(x,y) {
 		return (y*this.puzzle_w+x);
 	}
+	/** @param {Tile[][] | null} oldgrid
+	 *  @returns {Tile[][]} */	
 	new_game_grid(oldgrid = null) {
 		let grid = [];
 		for(let y=0; y<this.puzzle_h; y++) {
@@ -252,6 +308,8 @@ export class Game {
 		}
 		return grid;
 	}
+	/** @param {string} puzstr
+	 *  @returns {Tile[][]} */
 	new_game_grid_from_puzstr(puzstr) {
 		let grid = this.new_game_grid();
 		// load puzzle string
@@ -275,6 +333,7 @@ export class Game {
 		// the same color!!!
 		return grid;
 	}
+	/** @returns {boolean} */	
 	have_win_condition() {
 		// does this.grid == this.sol_grid?
 		if(!Array.isArray(this.sol_grid)) return false;
@@ -290,6 +349,8 @@ export class Game {
 		this.won = true;
 		return true;
 	}
+	/** @param {number} ts
+	 *  @returns {boolean} */
 	pause(ts) {		// return true if we are now paused, false if we are now running
 		if(!this.timer.running) {
 			this.timer.start(ts);
@@ -299,6 +360,7 @@ export class Game {
 			return true;
 		}
 	}
+	/** @param {string} s */
 	load_level_string(s) {
 		// level string is in format w,h,puzzle,solution
 		let [ title, w, h, puz, sol ] = s.split(',');
@@ -308,6 +370,9 @@ export class Game {
 		this.grid = this.new_game_grid_from_puzstr(puz);
 		this.sol_grid = this.new_game_grid_from_puzstr(sol);
 	}
+	/** @param {number} px
+	 *  @param {number} py
+	 *  @returns {[number,number]} */
 	pixel_xy_to_grid_xy(px,py) {
 		// we can perform a basic translation first
 		// then we need to do an advanced check for the corners
@@ -347,13 +412,22 @@ export class Game {
 		}
 		return [gx,gy]; // Warning: results may be out of range
 	}
+	/** @param {number} x
+	 *  @param {number} y
+	 *  @returns {boolean} */	
 	inBounds(x,y) {
 		return (x>=0 && x<this.puzzle_w && y>= 0 && y<this.puzzle_h);
 	}
+	/** @param {number} a
+	 *  @returns {number} */	
 	invertAngle(a) {
 		if(a > 2) { return a-3; }
 		return a+3;
 	}
+	/** @param {number} x
+	 *  @param {number} y
+	 *  @param {number} a
+	 *  @returns {[number,number] | null} */
 	get_gxy_at_angle(x,y,a) {
 		// return the [x,y] of a tile at the angle a
 		// or return null if there is no tile
@@ -382,6 +456,9 @@ export class Game {
 		if(nx<0 || nx>(this.puzzle_w-1) || ny<0 || ny>(this.puzzle_h-1)) return null;
 		return [nx,ny];
 	}
+	/** @param {number} x
+	 *  @param {number} y
+	 *  @returns {boolean} */	
 	is_isolated(x,y) {
 		// return TRUE if this tile is not connected to any others
 		// check each angle from this tile
@@ -396,6 +473,9 @@ export class Game {
 		}
 		return true; 	// not connected
 	}
+	/** @param {number} x
+	 *  @param {number} y
+	 *  @returns {number[][]} */
 	get_surrounding_tiles(x,y) {
 		// return an array of surrounding tiles (i.e. not the ones on the edge)
 		// array of items [x,y]
@@ -408,80 +488,40 @@ export class Game {
 		}
 		return arr;
 	}
-	get_connected_tiles_o(x,y,tileset,recursive) {
-		// return a set of [x,y] of tiles that are connected to this one
-		// return an empty set for none
-		// initially pass a set with just this [x,y]
-		for(let a=0; a<6; a++) {
-			if(!this.grid[y][x].conns[a]) continue;	// if we're not connected, continue
-			let nxy = this.get_gxy_at_angle(x,y,a);	// get tile that's at that angle
-			if(nxy == null) continue; // no tile there
-			let [nx,ny] = nxy;
-			if(this.grid[ny][nx].conns[this.invertAngle(a)]) {
-				// we have a connection!
-				// check we don't already have it stored
-				if(!tileset.has(ny*this.puzzle_w+nx)) {
-					tileset.add(ny*this.puzzle_w+nx);
-					if(recursive) tileset = this.get_connected_tiles_o(nx,ny,tileset,recursive);
-				}
-			}
-		}
-		return tileset;
-	}
-	get_connected_tiles_breadth_first(px,py,recursive) {
-		// return a set of [x,y] of tiles that are connected to this one
-		let stack = [[px,py,null]];
-		let tileset = new Set();
-		tileset.add(py*this.puzzle_w+px);
-		let looped_set = new Set();
-		
-		for(let i=0; i<stack.length; i++) {
-			let x = stack[i][0];
-			let y = stack[i][1];
-			let fromangle = stack[i][2];
-			for(let a=0; a<6; a++) {
-				if(fromangle != null && fromangle == a) continue; // don't check where we came from
-				if(!this.grid[y][x].conns[a]) continue;	// if we're not connected, continue
-				let nxy = this.get_gxy_at_angle(x,y,a);	// get tile that's at that angle
-				if(nxy == null) continue; // no tile there
-				let [nx,ny] = nxy;
-				if(this.grid[ny][nx].conns[this.invertAngle(a)]) {
-					// we have a connection!
-					// check we don't already have it stored
-					if(tileset.has(ny*this.puzzle_w+nx)) {
-						console.log('FOUND A LOOP',nx,ny);	
-						// TO DO: return a pruned version of the whole tileset
-						looped_set.add(y*this.puzzle_w+x);
-						looped_set.add(ny*this.puzzle_w+nx);
-					} else {
-						tileset.add(ny*this.puzzle_w+nx);
-						if(recursive) {
-							stack.push([nx,ny,this.invertAngle(a)]);
-						}
-					}
-				}
-			}
-		}
-		return [tileset,looped_set];
-	}
+	/** @param {number} px
+	 *  @param {number} py
+	 *  @param {boolean} recursive
+	 *  @returns {[Set<number>, Set<number>]} */	
 	get_connected_tiles(px,py,recursive) {		// depth first, easier to find loops
+		class StackItem {
+		/** @param {number} px
+		 *  @param {number} py
+		 *  @param {number | null} fromangle
+		 *  @param {number} angle */				
+			constructor(px,py,fromangle,angle) {
+				this.x = px;
+				this.y = py;
+				this.fromangle = fromangle;
+				this.angle = angle;
+			}
+		}
 		// return a set of [x,y] of tiles that are connected to this one
-		let stack = [[px,py,null,0]];
+		let stack = [new StackItem(px,py,null,0)];
 		let tileset = new Set();
 		tileset.add(py*this.puzzle_w+px);
 		let looped_set = new Set();
 		
 		while(stack.length > 0) {
-			let popped = stack.pop();
-			let x = popped[0];
-			let y = popped[1];
-			let fromangle = popped[2];
-			let angle = popped[3];
+			let item = stack.pop();
+			let x = item.x;
+			let y = item.y;
+			let fromangle = item.fromangle;
+			let angle = item.angle;
 			
 			if(angle>5)	continue;
 
 			// add ourselves back on to the stack, with the next angle
-			stack.push([x,y,fromangle,angle+1]);
+			stack.push(new StackItem(x,y,fromangle,angle+1));
 			if(fromangle != null && fromangle == angle) continue; // don't check where we came from
 			if(!this.grid[y][x].conns[angle]) continue;	// if we're not connected, continue
 			let nxy = this.get_gxy_at_angle(x,y,angle);	// get tile that's at that angle
@@ -497,20 +537,20 @@ export class Game {
 					// find the start point
 					let idx=0;
 					for(idx=0; idx<stack.length; idx++) {
-						if(stack[idx][0] == nx && stack[idx][1] == ny) break;
+						if(stack[idx].x == nx && stack[idx].y == ny) break;
 					}
 					if(idx==stack.length) {
 						// console.log("unable to find looped tile in stack",nx,ny);
 					} else {
 						// copy the whole looped section to looped_set
 						for(let i=idx; i<stack.length; i++) {
-							looped_set.add(stack[i][1]*this.puzzle_w+stack[i][0]);
+							looped_set.add(stack[i].y*this.puzzle_w+stack[i].x);
 						}
 					}
 				} else {
 					tileset.add(ny*this.puzzle_w+nx);
 					if(recursive) {
-						stack.push([nx,ny,this.invertAngle(angle),0]);
+						stack.push(new StackItem(nx,ny,this.invertAngle(angle),0));
 					}
 				}
 			}
@@ -520,7 +560,9 @@ export class Game {
 }
 
 
-function readFile(filename, onloadfn) {
+/** @param {string} filename
+ *  @param {function(Array<string>):void} onloadfn */
+ function readFile(filename, onloadfn) {
     const oReq = new XMLHttpRequest();
     oReq.open("GET", filename, true);
     oReq.responseType = "text";
@@ -528,9 +570,12 @@ function readFile(filename, onloadfn) {
 		const t = oReq.response;
 		console.log("puzzle file loaded: ",filename);
 		// parse CSV into lines
+		/** @type { Array<string> } */
 		let puzzle_array = [];
 		let lines = t.split("\n");
-		lines.forEach( l => { if(l.length>8) puzzle_array.push(l); } );		
+		for(let l of lines) {
+			if(l.length>8) puzzle_array.push(l);
+		}
         onloadfn(puzzle_array);
     };
     oReq.send(null);
@@ -539,21 +584,22 @@ function readFile(filename, onloadfn) {
 
 export class GameManager {
 	constructor() {
-		this.PUZZLES = { '5': [], '10': [], '15': [], '20': [], '30': [], '40': [] };
+		/** @type {Map<string,Array<string>>} */
+		this.PUZZLES = new Map();
+		/** @type {string} */
 		this.puzzle_type = Storage.loadStr('puzzle_type','5');
 		this.puzzle_idx = Storage.loadInt('puzzle_idx'+this.puzzle_type,0);
 		this.showStats = false;
 		this.showFPS = false;
 		this.showTimer = true;
 		
-		readFile('/puzzles5.csv', a => this.PUZZLES['5'] = a );
-		readFile('/puzzles10.csv', a => this.PUZZLES['10'] = a );
-		readFile('/puzzles15.csv', a => this.PUZZLES['15'] = a );
-		readFile('/puzzles20.csv', a => this.PUZZLES['20'] = a );
-		readFile('/puzzles30.csv', a => this.PUZZLES['30'] = a );
-		readFile('/puzzles40.csv', a => this.PUZZLES['40'] = a );
+		readFile('/puzzles5.csv', a => this.PUZZLES.set('5', a));
+		readFile('/puzzles10.csv', a => this.PUZZLES.set('10', a ));
+		readFile('/puzzles15.csv', a => this.PUZZLES.set('15', a ));
+		readFile('/puzzles20.csv', a => this.PUZZLES.set('20', a ));
+		readFile('/puzzles30.csv', a => this.PUZZLES.set('30', a ));
+		readFile('/puzzles40.csv', a => this.PUZZLES.set('40', a ));
 
-		this.transitionList = [];
 		this.renderSet = new Set();
 		this.loopedSet = new Set();
 		this.game = this.loadGame(parseInt(this.puzzle_type));
@@ -583,7 +629,7 @@ export class GameManager {
 			ev.preventDefault();
 			ev.stopPropagation();
 			ev.stopImmediatePropagation();
-			var gm = document.gameManager;
+			var gm = gameManager;
 			var [x, y] = gm.game.pixel_xy_to_grid_xy(ev.offsetX, ev.offsetY);
 			if(gm.game.inBounds(x,y)) {
 				gm.click(x,y,ev.buttons);
@@ -601,7 +647,7 @@ export class GameManager {
 		}
 	}
 	next_puzzle() {
-		if(this.puzzle_idx + 1 >= this.PUZZLES[this.puzzle_type].length) {
+		if(this.puzzle_idx + 1 >= this.PUZZLES.get(this.puzzle_type).length) {
 			console.log("Ran out of puzzles!");
 		} else {
 			this.puzzle_idx++;
@@ -611,25 +657,24 @@ export class GameManager {
 	}
 	restart({restart_solved = false, restart_game = true}={}) {	
 		// check if we have finished loading the puzzle data, if not, try again later.
-		if(this.PUZZLES[this.puzzle_type].length < 1) {
-			setTimeout(() => document.gameManager.restart({restart_solved:restart_solved, restart_game:restart_game}), 100);
+		if(!this.PUZZLES.has(this.puzzle_type)) {
+			setTimeout(() => gameManager.restart({restart_solved:restart_solved, restart_game:restart_game}), 100);
 			return;
 		}
 
-		// use puzzle_type and puzzle_idx
 		if(restart_game || this.game.puzzle_w==0) {
-			let n = parseInt(this.puzzle_type);
+			const n = parseInt(this.puzzle_type);
 			this.game = new Game({puzzle_w:n,puzzle_h:n});
-			this.game.load_level_string(this.PUZZLES[this.puzzle_type][this.puzzle_idx]);
+			this.game.load_level_string(this.PUZZLES.get(this.puzzle_type)[this.puzzle_idx]);
 		}
 		
 		// if the game has been solved, actually load the solved puzzle, and set win condition
 		if(!restart_solved) {
-			let hs = Storage.loadObj('highscore_'+this.puzzle_type, []);
-			let t = parseInt(hs[this.puzzle_idx]);
+			let hs = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
+			let t = parseInt(hs.get(this.puzzle_idx));
 			if(Number.isInteger(t)) {
 				this.game.grid = this.game.sol_grid;
-				this.game.timer.set_millis(t);
+				this.game.timer = new Timer({time: t});
 				if(this.game.have_win_condition()) {
 					this.on_win();
 				}
@@ -641,8 +686,11 @@ export class GameManager {
 			this.view.setUp(this.game.puzzle_w,this.game.puzzle_h);
 			this.paintAll();
 		}
+		
+		// save the game state
+		this.saveGame();
 	}
-	
+	/** @param {number} n */
 	setSize(n) {
 		this.puzzle_type = n.toString();
 		Storage.saveStr('puzzle_type',this.puzzle_type);
@@ -653,7 +701,6 @@ export class GameManager {
 	updateLoopSet() {
 		const prevSet = this.loopedSet;
 		this.loopedSet = new Set();
-		// we can use get_connected_tiles and read the looped set		
 		// TO DO: have a more efficient mode, where we only look at tiles surounding the clicked tile
 
 		let tiles = [];
@@ -690,6 +737,7 @@ export class GameManager {
 			}
 		}
 	}
+	/** @param {number} ts */
 	render(ts) {
 		this.game.ts = ts;
 		this.game.timer.update(ts);
@@ -705,50 +753,53 @@ export class GameManager {
 	paintAll() {
 		// note: paintAll does not call render(), render will be called by the animationFrame main() loop
 		this.renderSet = new Set();
+		this.loopedSet = new Set();
+		this.updateLoopSet();
 		for(let i=0;i<(this.game.puzzle_h*this.game.puzzle_w);i++) {
 			this.renderSet.add(i);
 		}
 	}
-
-	zz_runOnTimer() {
-		setInterval(this.render, 1000/CONFIG.FPS);
-		this.render();
-	}
 	saveGame() {
 		Storage.saveObj('savegame',this.game);
 	}
+	/** @param {number} n */
 	loadGame(n) {
 		// will return a fully loaded game, or just a dummy game
 		let loaded = Storage.loadObj('savegame',{puzzle_w:0,puzzle_h:0});
 		return new Game(loaded);
 	}
 	updateStats() {
-		let hs = Storage.loadObj('highscore_'+this.puzzle_type, []);
+		/** @type {Array<number>} */
+		let hsmap = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
+		let hs = [ ...hsmap.values() ];
 		hs.sort((a, b) => a - b);
 		let puztype = this.puzzle_type + 'x' + this.puzzle_type;
 		let best = 'tbd';
 		let best3 = 'tbd';
 		let best5 = 'tbd';
 		let best10 = 'tbd'
-		if(hs.length>=1)  best = timestring_from_ms(hs[0]);
-		if(hs.length>=3)  best3 = timestring_from_ms(hs.slice(0,3).reduce( (p, c) => p + c, 0 )/3.0);
-		if(hs.length>=5)  best5 = timestring_from_ms(hs.slice(0,5).reduce( (p, c) => p + c, 0 )/5.0);
-		if(hs.length>=10) best10 = timestring_from_ms(hs.slice(0,10).reduce( (p, c) => p + c, 0 )/10.0);
+		if(hs.length>=1)  best = timestringFrom(hs[0]);
+		if(hs.length>=3)  best3 = timestringFrom(hs.slice(0,3).reduce( (p, c) => p + c, 0 )/3.0);
+		if(hs.length>=5)  best5 = timestringFrom(hs.slice(0,5).reduce( (p, c) => p + c, 0 )/5.0);
+		if(hs.length>=10) best10 = timestringFrom(hs.slice(0,10).reduce( (p, c) => p + c, 0 )/10.0);
 		this.stats = { puztype: puztype, num: hs.length.toString(), best: best, best3: best3, best5: best5, best10: best10 };
 	}
 	on_win() {
 		this.game.timer.stop(this.game.last_ts);
-		this.game.wintime = this.game.timer.get_timestring();
+		this.game.wintime = this.game.timer.timestring();
 		document.getElementById('wintime').innerHTML = this.game.wintime;
-		let hs = Storage.loadObj('highscore_'+this.puzzle_type, []);
-		hs[this.puzzle_idx] = Math.trunc(this.game.timer.get_millis());
-		Storage.saveObj('highscore_'+this.puzzle_type,hs);
+		let hs = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
+		hs.set(this.puzzle_idx, Math.trunc(this.game.timer.get_millis()));
+		Storage.saveMap('highscore_'+this.puzzle_type,hs);
 		this.updateStats();
 		if(this.game.winningAnimation.started == false) {
 				this.game.winningAnimation.started = true;
 				this.game.winningAnimation.start_ts = this.game.ts;
 		}
 	}
+	/** @param {number} x
+	 *  @param {number} y
+	 *  @param {number} buttons */
 	click(x,y,buttons) {
 		if(!this.game.won) {
 			if(buttons==0 || buttons==1) this.game.grid[y][x].rotate_cw();
@@ -792,14 +843,14 @@ export class GameManager {
 				}
 			}
 			//console.log('tileset size:',tileset.size);
-			tileset.forEach((val) => {
-				let tsy = Math.trunc(val/this.game.puzzle_w);
-				let tsx = val%this.game.puzzle_w;
+			for(let v of tileset) {
+				let tsy = Math.trunc(v/this.game.puzzle_w);
+				let tsx = v%this.game.puzzle_w;
 				if(this.game.grid[tsy][tsx].color != colorIdx) {
 					this.game.grid[tsy][tsx].color = colorIdx;
-					this.renderSet.add(val);
+					this.renderSet.add(v);
 				}
-			});
+			};
 			if(this.game.have_win_condition()) {
 				this.on_win();
 			}
@@ -808,3 +859,8 @@ export class GameManager {
 		this.saveGame();		
 	}
 }
+
+// Global export
+
+export var gameManager = new GameManager();    // global scope
+// window.gameManager = new GameManager(); roughly equivalent to this

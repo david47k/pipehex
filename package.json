@@ -2,14 +2,17 @@
   "name": "pipehex",
   "version": "1.0.0",
   "description": "Puzzle game.",
-  "main": "index.js",
+  "main": "src/index.js",
   "private": true,
   "author": "David Atkinson <david47k@d47.co>",
   "license": "All rights reserved.",
   "dependencies": {
+    "corepack": "^0.13.0",
     "webpack": "^5.74.0"
   },
   "devDependencies": {
+    "typescript": "^4.7.4",
     "webpack-cli": "^4.10.0"
-  }
+  },
+  "packageManager": "yarn@3.2.3"
 }

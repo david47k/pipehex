@@ -46,6 +46,11 @@ we could also have a 2x mode, or user-selectable resolution, to scale up.
 so maybe even 16x14. would be nice and small.
 
 hexagon_ratio = 0.8660254
+          7:8 = 0.875
+        56:64 = 0.875
+      111:128 = 0.86719
+          
+          
 
 Can either use a grid, and update each image specifically, or use a canvas, and
 blit to each section specifically. Canvas should be quicker.

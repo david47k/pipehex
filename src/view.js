@@ -1,8 +1,7 @@
 /* Copyright 2022 David Atkinson */
 
-import { Tile, Game } from "./game-manager.js";
+import { Tile, Game, gameManager } from "./game-manager.js";
 import Storage from "./storage.js";
-const getRange = length => [...Array(length).keys()];
 
 
 /* Palette based on Munsell colors */
@@ -28,9 +27,11 @@ export const palette_dark = ['#cd1031','#8e107c','#51227e','#025197','#0064a3','
 const drawMethods = ['img','canvas_ctx2d','manual_mask'];
 
 export class View {
-	constructor(gwidth, gheight) {
-		this.gameWidth = gwidth;
-		this.gameHeight = gheight;
+	/** @param {number} gameWidth
+	 *  @param {number} gameHeight */
+	constructor(gameWidth, gameHeight) {
+		this.gameWidth = gameWidth;
+		this.gameHeight = gameHeight;
 		this.container = document.getElementById('container');
 		//this.scoreboard = document.getElementById('scoreboard');
 		this.drawMethod = 1;
@@ -41,26 +42,28 @@ export class View {
 		this.srcImage.loading = "eager";
 		this.srcImage.addEventListener('load', function() {
 			console.log("image loaded"); 
-			document.gameManager.view.setUp(document.gameManager.game.puzzle_w, document.gameManager.game.puzzle_h);
+			gameManager.view.setUp(gameManager.game.puzzle_w, gameManager.game.puzzle_h);
 		}); */
 		
 		// the resize event will need fixing so it redraws everything
 		// i.e. gm.paintAll();
 		/* window.addEventListener('resize', () => {
-			this.setUp(document.gameManager.game.puzzle_w, document.gameManager.game.puzzle_h);
+			this.setUp(gameManager.game.puzzle_w, gameManager.game.puzzle_h);
 		}); */
-		this.setUp(gwidth, gheight); // this function will start the image loading process
-	}
+		this.unitOnScreenH = 64;
+		this.unitOnScreenVO = 48;
+		this.unitOnScreenW = 56;
 
+		this.setUp(gameWidth, gameHeight); // this function will start the image loading process
+	}
+	/** @param {number} gameWidth
+	 *  @param {number} gameHeight */
 	setUp(gameWidth, gameHeight) {	// gameWidth and gameHeight are in grid units
 		console.log('setting up...')
 
 		let { width, height } = this.container.getBoundingClientRect();
 		height = document.documentElement.clientHeight - 15; // override the above height estimate: 10px padding 2px border 3px unknown
 
-		this.unitOnScreenH = 64;
-		this.unitOnScreenVO = 48;
-		this.unitOnScreenW = 56;
 		//this.unitOnScreen = Math.floor(Math.min( width / gameWidth,	height / gameHeight ));
 		//this.unitOnScreen = ( Math.floor(this.unitOnScreen / 4) * 4 );	// canvas drawImage is crappy, reduce aliasing artifacts
 		//if(this.unitOnScreen > 256) this.unitOnScreen = 256; // reducing aliasing artifacts - can also split src into individual sprites
@@ -88,20 +91,24 @@ export class View {
 		const canvas = document.createElement('canvas');
 		this.container.appendChild(canvas);
 		this.context = canvas.getContext('2d');
-		canvas.setAttribute('width',gameWidth * this.unitOnScreenW + Math.floor(this.unitOnScreenW/2));
-		canvas.setAttribute('height',(gameHeight + 1) * this.unitOnScreenVO - (this.unitOnScreenH/2));
+		canvas.setAttribute('width',''+(gameWidth * this.unitOnScreenW + Math.floor(this.unitOnScreenW/2)));
+		canvas.setAttribute('height',''+((gameHeight + 1) * this.unitOnScreenVO - (this.unitOnScreenH/2)));
 		//console.log('new canvas created');
 		
 		// render (update stats display) with current stats
 		this.renderStats();
 	}
 	
+	/** @param {number} dx
+	 *  @param {number} dy
+	 *  @param {number} sx
+	 *  @param {number} sy */
 	renderImg(dx, dy, sx, sy) {
-		sx = sx * this.srcBlockW;
+/*		sx = sx * this.srcBlockW;
 		sy = sy * this.srcBlockH;
 		if(dy%2==1) dx += 0.5;
 		
-/*		if(this.srcImage.complete && this.context) { */
+//		if(this.srcImage.complete && this.context) { 
 		if(this.context) {
 			this.context.drawImage(this.srcImage,
 				sx,sy,
@@ -109,10 +116,11 @@ export class View {
 				Math.floor(this.unitOnScreenW * dx),
 				this.unitOnScreenVO * dy,
 				this.unitOnScreenW,this.unitOnScreenH);
-		}
-			
+		} */
 	}
-	
+	/** @param {HTMLCanvasElement} srcCanvas
+	 *  @param {number} dx
+	 *  @param {number} dy */
 	renderFromCanvas(srcCanvas, dx, dy) {
 		if(dy%2==1) dx += 0.5;
 		if(this.context) {
@@ -122,19 +130,19 @@ export class View {
 				this.unitOnScreenW,this.unitOnScreenH);
 		}
 	}
-	
+	/** @returns {HTMLCanvasElement} */
 	getHexCanvas(colorIdx = PALETTE_SIZE) {
-		let key = colorIdx+65536;	// allowing 16 bits for line tile cache
+		const key = colorIdx+65536;	// allowing 16 bits for line tile cache
 		if(this.canvasCache.has(key)) {
 			return this.canvasCache.get(key);
 		}
 		
 		let canvas = document.createElement('canvas');
-		let ctx = canvas.getContext('2d');
+		let ctx = canvas.getContext('2d');		
 		let width = this.unitOnScreenW;
 		let height = this.unitOnScreenH;
-		canvas.setAttribute('width',width);
-		canvas.setAttribute('height',height);
+		canvas.setAttribute('width',width.toString());
+		canvas.setAttribute('height',height.toString());
 		//this.unitOnScreenH = 64;
 		//this.unitOnScreenVO = 48;
 		//this.unitOnScreenW = 56;
@@ -159,7 +167,9 @@ export class View {
 		this.canvasCache.set(key,canvas);
 		return canvas;
 	}
-
+	/** @param {number[]} conns
+	 *  @param {number} colorIdx
+	 *  @returns {HTMLCanvasElement} */
 	getLineCanvas(conns, colorIdx) {
 		// Use 2d context line drawing functions.
 
@@ -178,8 +188,8 @@ export class View {
 		let ctx = canvas.getContext('2d');
 		let width = this.unitOnScreenW;
 		let height = this.unitOnScreenH;
-		canvas.setAttribute('width',width);
-		canvas.setAttribute('height',height);
+		canvas.setAttribute('width',width.toString());
+		canvas.setAttribute('height',height.toString());
 		ctx.lineCap = 'butt';
 		ctx.lineJoin = 'bevel';					// will this help with Safari-iOS ugly butts?
 		//ctx.imageSmoothingQuality = 'high'; 
@@ -218,10 +228,9 @@ export class View {
 
 		return canvas;
 	}
-
-	renderStats(stats) {
-		if(document.gameManager && document.gameManager.stats) {
-			const stats = document.gameManager.stats;
+	renderStats() {
+		if(gameManager && gameManager.stats) {
+			const stats = gameManager.stats;
 			document.getElementById('stats_size').innerHTML = stats.puztype;
 			document.getElementById('stats_num').innerHTML = stats.num;
 			document.getElementById('stats_best').innerHTML = stats.best;
@@ -231,7 +240,7 @@ export class View {
 		}
 	}
 	render() {
-		let gm = document.gameManager;
+		let gm = gameManager;
 		if(!gm) {
 			console.log('view::render() called with no gamemanager initialised');
 			return;
@@ -240,8 +249,8 @@ export class View {
 			//console.log('view::render() called with no context initialised');
 			return;
 		}
-		let game = document.gameManager.game;
-		let ts = document.gameManager.game.ts;
+		let game = gameManager.game;
+		let ts = gameManager.game.ts;
 		
 		if(this.alwaysRenderAll || gm.game.winningAnimation.started) {
 			gm.paintAll(); // will update gm.renderSet appropriately
@@ -277,7 +286,7 @@ export class View {
 		gm.renderSet.clear();
 		
 		// update fps
-		if(document.gameManager.showFPS) {
+		if(gameManager.showFPS) {
 			let fps = Math.floor(1000.0 / (ts - game.last_ts));
 			document.getElementById("fps_text").innerHTML = '' + fps;
 		}
@@ -289,19 +298,19 @@ export class View {
 		document.getElementById("puzzle_title").innerHTML = game.title;
 		
 		// update timer
-		document.getElementById("timer_text").innerHTML = game.timer.get_timestring(ts);
+		document.getElementById("timer_text").innerHTML = game.timer.timestring();
 
 		// update win screen
 		if(game.won) {
 			document.getElementById('wintime').innerHTML = game.wintime;
 			document.getElementById('winner').classList.remove('hide');
-			this.renderStats(gm.stats);	// update statistics
+			this.renderStats();	// update statistics
 		} else {
 			document.getElementById("winner").classList.add("hide");
 		}
 		
 		// update paused button
-		const paused = !document.gameManager.game.timer.running;
-		document.getElementById('pause').setAttribute('aria-pressed', paused);
+		const paused = !gameManager.game.timer.running;
+		document.getElementById('pause').setAttribute('aria-pressed', paused.toString());
 	}
 }
