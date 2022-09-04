@@ -1,6 +1,5 @@
 /* game-manager.js
- * The primary entry point into the game. Manages the other components and
- * interactions with the user.
+ * Manages the game, other components, takes interaction with the player.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */
 
@@ -263,7 +262,7 @@ export class GameManager {
 		this.game.wintime = this.game.timer.timestring();
 		document.getElementById('wintime').innerHTML = this.game.wintime;
 		let hs = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
-		hs.set(this.puzzle_idx, Math.trunc(this.game.timer.get_millis()));
+		hs.set(this.puzzle_idx, Math.trunc(this.game.timer.getMillis()));
 		Storage.saveMap('highscore_'+this.puzzle_type,hs);
 		this.updateStats();
 		if(this.game.winningAnimation.started == false) {
@@ -276,8 +275,8 @@ export class GameManager {
 	 *  @param {number} buttons */
 	click(x,y,buttons) {
 		if(!this.game.won) {
-			if(buttons==0 || buttons==1) this.game.grid[y][x].rotate_cw();
-			else if(buttons==2) this.game.grid[y][x].rotate_ccw();
+			if(buttons==0 || buttons==1) this.game.grid[y][x].rotate();
+			else if(buttons==2) this.game.grid[y][x].rotate(true);
 			this.renderSet.add(this.game.idx_from_xy(x,y));
 			this.game.timer.start(this.game.last_ts);
 			// check if we need to change colours of surrounding tiles

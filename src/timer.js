@@ -40,10 +40,6 @@ export class Timer {
 		this.running = false;
 		this.time = 0;
 	}
-	/** @param {number} ms */
-	set_millis(ms) {
-		this.time = ms;
-	}
 	/** @param {number} ts */
 	update(ts) {
 		if(this.running) {
@@ -56,7 +52,7 @@ export class Timer {
 			this.timestamp = ts;
 		}
 	}		
-	get_millis() {
+	getMillis() {
 		return this.time;
 	}
 	timestring() {
