@@ -1,7 +1,12 @@
-/* Copyright 2022 David Atkinson */
+/* view.js
+ * The view of the game, rendered to the HTML document / DOM.
+ * Copyright 2022 David Atkinson <david47k@d47.co>
+ */
 
-import { Tile, Game, gameManager } from "./game-manager.js";
-import Storage from "./storage.js";
+import { Tile }  from './tile.js';
+import { gameManager } from './game-manager.js';
+import { Game } from './game.js';
+import Storage from './storage.js';
 
 
 /* Palette based on Munsell colors */
