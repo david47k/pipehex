@@ -16,9 +16,8 @@ function rand_inclusive(n) {
 	return Math.trunc(Math.random() * (n+1));
 }
 
-let tile_sizes = [ [ 56, 64, 48 ], [ 42, 48, 36 ], [ 28, 32, 24 ] ];
 
-/** @typedef {{puzzle_w: number, puzzle_h: number, grid: null | Tile[][], sol_grid: null|Tile[][], won: boolean, title: string, timer: any }} GameLike */
+/** @typedef {{width: number, height: number, grid: null | Tile[][], solvedGrid: null|Tile[][], won: boolean, title: string, timer: any }} GameLike */
 
 // destructuring alternative. overwrites the default values we've already assigned.
 // for(const [key, value] of Object.entries(params)) {
@@ -44,12 +43,12 @@ let tile_sizes = [ [ 56, 64, 48 ], [ 42, 48, 36 ], [ 28, 32, 24 ] ];
 		console.log("puzzle file loaded: ",filename);
 		// parse CSV into lines
 		/** @type { Array<string> } */
-		let puzzle_array = [];
+		let puzzleArr = [];
 		let lines = t.split("\n");
 		for(let l of lines) {
-			if(l.length>8) puzzle_array.push(l);
+			if(l.length>8) puzzleArr.push(l);
 		}
-        onloadfn(puzzle_array);
+        onloadfn(puzzleArr);
     };
     oReq.send(null);
 }
@@ -60,8 +59,8 @@ export class GameManager {
 		/** @type {Map<string,Array<string>>} */
 		this.PUZZLES = new Map();
 		/** @type {string} */
-		this.puzzle_type = Storage.loadStr('puzzle_type','5');
-		this.puzzle_idx = Storage.loadInt('puzzle_idx'+this.puzzle_type,0);
+		this.puzzleType = Storage.loadStr('puzzleType','5');
+		this.puzzleIdx = Storage.loadInt('puzzleIdx'+this.puzzleType,0);
 		this.showStats = false;
 		this.showFPS = false;
 		this.showTimer = true;
@@ -75,12 +74,12 @@ export class GameManager {
 
 		this.renderSet = new Set();
 		this.loopedSet = new Set();
-		this.game = this.loadGame(parseInt(this.puzzle_type));
+		this.game = this.loadGame(parseInt(this.puzzleType));
 		this.updateStats();
 		
-		this.view = new View(this.game.puzzle_w,this.game.puzzle_h);
+		this.view = new View(this.game.width,this.game.height);
 
-		this.restart({restart_solved:false, restart_game:false});
+		this.restart({restartSolved:false, restartGame:false});
 
 		this.view.container.addEventListener('contextmenu', function(ev) {
 			ev.preventDefault();
@@ -103,60 +102,60 @@ export class GameManager {
 			ev.stopPropagation();
 			ev.stopImmediatePropagation();
 			var gm = gameManager;
-			var [x, y] = gm.game.pixel_xy_to_grid_xy(ev.offsetX, ev.offsetY);
+			var [x, y] = gm.game.xyFromPixelCoords(ev.offsetX, ev.offsetY);
 			if(gm.game.inBounds(x,y)) {
 				gm.click(x,y,ev.buttons);
 			}
 			return false;
 		});
 	}
-	prev_puzzle() {
-		if(this.puzzle_idx <= 0) {
+	prevPuzzle() {
+		if(this.puzzleIdx <= 0) {
 			console.log("No previous puzzles!");
 		} else {
-			this.puzzle_idx--;
-			Storage.saveInt('puzzle_idx'+this.puzzle_type,this.puzzle_idx);
+			this.puzzleIdx--;
+			Storage.saveInt('puzzleIdx'+this.puzzleType,this.puzzleIdx);
 			this.restart();
 		}
 	}
-	next_puzzle() {
-		if(this.puzzle_idx + 1 >= this.PUZZLES.get(this.puzzle_type).length) {
+	nextPuzzle() {
+		if(this.puzzleIdx + 1 >= this.PUZZLES.get(this.puzzleType).length) {
 			console.log("Ran out of puzzles!");
 		} else {
-			this.puzzle_idx++;
-			Storage.saveInt('puzzle_idx'+this.puzzle_type,this.puzzle_idx);
+			this.puzzleIdx++;
+			Storage.saveInt('puzzleIdx'+this.puzzleType,this.puzzleIdx);
 			this.restart();
 		}
 	}
-	restart({restart_solved = false, restart_game = true}={}) {	
+	restart({restartSolved = false, restartGame = true}={}) {	
 		// check if we have finished loading the puzzle data, if not, try again later.
-		if(!this.PUZZLES.has(this.puzzle_type)) {
-			setTimeout(() => gameManager.restart({restart_solved:restart_solved, restart_game:restart_game}), 100);
+		if(!this.PUZZLES.has(this.puzzleType)) {
+			setTimeout(() => gameManager.restart({restartSolved:restartSolved, restartGame:restartGame}), 100);
 			return;
 		}
 
-		if(restart_game || this.game.puzzle_w==0) {
-			const n = parseInt(this.puzzle_type);
-			this.game = new Game({puzzle_w:n,puzzle_h:n});
-			this.game.load_level_string(this.PUZZLES.get(this.puzzle_type)[this.puzzle_idx]);
+		if(restartGame || this.game.width==0) {
+			const n = parseInt(this.puzzleType);
+			this.game = new Game({width:n,height:n});
+			this.game.loadLevelString(this.PUZZLES.get(this.puzzleType)[this.puzzleIdx]);
 		}
 		
 		// if the game has been solved, actually load the solved puzzle, and set win condition
-		if(!restart_solved) {
-			let hs = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
-			let t = parseInt(hs.get(this.puzzle_idx));
+		if(!restartSolved) {
+			let hs = Storage.loadMap('highscore'+this.puzzleType, new Map());
+			let t = parseInt(hs.get(this.puzzleIdx));
 			if(Number.isInteger(t)) {
-				this.game.grid = this.game.sol_grid;
+				this.game.grid = this.game.solvedGrid;
 				this.game.timer = new Timer({time: t});
-				if(this.game.have_win_condition()) {
-					this.on_win();
+				if(this.game.haveWinCondition()) {
+					this.onWin();
 				}
 			}
 		}
 		
 		// set up the view, and set all tiles to be rendered
 		if(this.view) {
-			this.view.setUp(this.game.puzzle_w,this.game.puzzle_h);
+			this.view.setUp(this.game.width,this.game.height);
 			this.paintAll();
 		}
 		
@@ -165,9 +164,9 @@ export class GameManager {
 	}
 	/** @param {number} n */
 	setSize(n) {
-		this.puzzle_type = n.toString();
-		Storage.saveStr('puzzle_type',this.puzzle_type);
-		this.puzzle_idx = Storage.loadInt('puzzle_idx'+this.puzzle_type,0);
+		this.puzzleType = n.toString();
+		Storage.saveStr('puzzleType',this.puzzleType);
+		this.puzzleIdx = Storage.loadInt('puzzleIdx'+this.puzzleType,0);
 		this.updateStats();
 		this.restart();
 	}
@@ -177,22 +176,22 @@ export class GameManager {
 		// TO DO: have a more efficient mode, where we only look at tiles surounding the clicked tile
 
 		let tiles = [];
-		for(let n=0;n<(this.game.puzzle_h*this.game.puzzle_w);n++) {
+		for(let n=0;n<(this.game.height*this.game.width);n++) {
 			tiles.push(n);
 		}
 		
 		while(tiles.length > 0) {
 			let idx = tiles.pop();
 			if(idx==-1) continue;
-			let [tx, ty] = this.game.xy_from_idx(idx);
-			let [tileset, looped_set] = this.game.get_connected_tiles(tx,ty,true);
-			for (const ti of tileset) {
+			let [tx, ty] = this.game.xyFromIdx(idx);
+			let [tileSet, loopedSet] = this.game.getConnectedTiles(tx,ty,true);
+			for (const ti of tileSet) {
 				let midx = tiles.findIndex( el => el === ti );
 				if(midx != -1) {
 					tiles[midx] = -1;
 				}
 			}
-			for(const lt of looped_set) {
+			for(const lt of loopedSet) {
 				//console.log('lt',lt);
 				this.loopedSet.add(lt);
 			}
@@ -228,7 +227,7 @@ export class GameManager {
 		this.renderSet = new Set();
 		this.loopedSet = new Set();
 		this.updateLoopSet();
-		for(let i=0;i<(this.game.puzzle_h*this.game.puzzle_w);i++) {
+		for(let i=0;i<(this.game.height*this.game.width);i++) {
 			this.renderSet.add(i);
 		}
 	}
@@ -238,15 +237,15 @@ export class GameManager {
 	/** @param {number} n */
 	loadGame(n) {
 		// will return a fully loaded game, or just a dummy game
-		let loaded = Storage.loadObj('savegame',{puzzle_w:0,puzzle_h:0});
+		let loaded = Storage.loadObj('savegame',{width:0,height:0});
 		return new Game(loaded);
 	}
 	updateStats() {
 		/** @type {Array<number>} */
-		let hsmap = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
+		let hsmap = Storage.loadMap('highscore'+this.puzzleType, new Map());
 		let hs = [ ...hsmap.values() ];
 		hs.sort((a, b) => a - b);
-		let puztype = this.puzzle_type + 'x' + this.puzzle_type;
+		let puztype = this.puzzleType + 'x' + this.puzzleType;
 		let best = 'tbd';
 		let best3 = 'tbd';
 		let best5 = 'tbd';
@@ -257,13 +256,13 @@ export class GameManager {
 		if(hs.length>=10) best10 = timestringFrom(hs.slice(0,10).reduce( (p, c) => p + c, 0 )/10.0);
 		this.stats = { puztype: puztype, num: hs.length.toString(), best: best, best3: best3, best5: best5, best10: best10 };
 	}
-	on_win() {
-		this.game.timer.stop(this.game.last_ts);
+	onWin() {
+		this.game.timer.stop(this.game.tsPrior);
 		this.game.wintime = this.game.timer.timestring();
 		document.getElementById('wintime').innerHTML = this.game.wintime;
-		let hs = Storage.loadMap('highscore_'+this.puzzle_type, new Map());
-		hs.set(this.puzzle_idx, Math.trunc(this.game.timer.getMillis()));
-		Storage.saveMap('highscore_'+this.puzzle_type,hs);
+		let hs = Storage.loadMap('highscore'+this.puzzleType, new Map());
+		hs.set(this.puzzleIdx, Math.trunc(this.game.timer.getMillis()));
+		Storage.saveMap('highscore'+this.puzzleType,hs);
 		this.updateStats();
 		if(this.game.winningAnimation.started == false) {
 				this.game.winningAnimation.started = true;
@@ -277,55 +276,55 @@ export class GameManager {
 		if(!this.game.won) {
 			if(buttons==0 || buttons==1) this.game.grid[y][x].rotate();
 			else if(buttons==2) this.game.grid[y][x].rotate(true);
-			this.renderSet.add(this.game.idx_from_xy(x,y));
-			this.game.timer.start(this.game.last_ts);
+			this.renderSet.add(this.game.idxFromXy(x,y));
+			this.game.timer.start(this.game.tsPrior);
 			// check if we need to change colours of surrounding tiles
-			let surrounding_tiles = this.game.get_surrounding_tiles(x,y);
+			let surrounding_tiles = this.game.getSurroundingTiles(x,y);
 			while(surrounding_tiles.length > 0) {
 				let [nx,ny] = surrounding_tiles.pop();
-				if(this.game.is_isolated(nx,ny)) {
+				if(this.game.isIsolated(nx,ny)) {
 					if(this.game.grid[ny][nx].isolated == false) {
 						this.game.grid[ny][nx].isolated = true;
 						this.game.grid[ny][nx].color = 0;
-						this.renderSet.add(this.game.idx_from_xy(nx,ny));
+						this.renderSet.add(this.game.idxFromXy(nx,ny));
 					}
 				} else {
 					if(this.game.grid[ny][nx].isolated == true) {
-						this.renderSet.add(this.game.idx_from_xy(nx,ny));
+						this.renderSet.add(this.game.idxFromXy(nx,ny));
 						this.game.grid[ny][nx].isolated = false;
 						// it'll get a color below, now it is no longer isolated
 					}
 				}
 			}
 			// check if we are connected to any tiles, in which case we need to change colors
-			let [tileset,looped_set] = this.game.get_connected_tiles(x,y,true);
+			let [tileSet,loopedSet] = this.game.getConnectedTiles(x,y,true);
 			let colorIdx = this.game.grid[y][x].color;
-			if(tileset.size <= 1) {
+			if(tileSet.size <= 1) {
 				this.game.grid[y][x].isolated = true;
 				colorIdx = 0;
 			} else {
 				this.game.grid[y][x].isolated = false;
 				
-				let iter = tileset.values();
+				let iter = tileSet.values();
 				iter.next();
 				let cxy = iter.next().value;		// change the color to the SECOND item in the set
-				colorIdx = this.game.tile_from_idx(cxy).color;
+				colorIdx = this.game.tileFromIdx(cxy).color;
 				if(colorIdx==0) {
-					colorIdx = 1+((y*this.game.puzzle_w+x)%(PALETTE_SIZE-1));	// randomish color
+					colorIdx = 1+((y*this.game.width+x)%(PALETTE_SIZE-1));	// randomish color
 					// TODO: should ideally pick a colour that is dissimilar to surrounding colours
 				}
 			}
-			//console.log('tileset size:',tileset.size);
-			for(let v of tileset) {
-				let tsy = Math.trunc(v/this.game.puzzle_w);
-				let tsx = v%this.game.puzzle_w;
+			//console.log('tileSet size:',tileSet.size);
+			for(let v of tileSet) {
+				let tsy = Math.trunc(v/this.game.width);
+				let tsx = v%this.game.width;
 				if(this.game.grid[tsy][tsx].color != colorIdx) {
 					this.game.grid[tsy][tsx].color = colorIdx;
 					this.renderSet.add(v);
 				}
 			};
-			if(this.game.have_win_condition()) {
-				this.on_win();
+			if(this.game.haveWinCondition()) {
+				this.onWin();
 			}
 		}		
 		this.render(this.game.ts); // render straight away without waiting for animationFrame

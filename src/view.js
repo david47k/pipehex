@@ -8,6 +8,11 @@ import { gameManager } from './game-manager.js';
 import { Game } from './game.js';
 import Storage from './storage.js';
 
+/*
+ * for future use
+ * 
+let tile_sizes = [ [ 56, 64, 48 ], [ 42, 48, 36 ], [ 28, 32, 24 ] ];
+*/
 
 /* Palette based on Munsell colors */
 
@@ -47,13 +52,13 @@ export class View {
 		this.srcImage.loading = "eager";
 		this.srcImage.addEventListener('load', function() {
 			console.log("image loaded"); 
-			gameManager.view.setUp(gameManager.game.puzzle_w, gameManager.game.puzzle_h);
+			gameManager.view.setUp(gameManager.game.width, gameManager.game.puzzle_h);
 		}); */
 		
 		// the resize event will need fixing so it redraws everything
 		// i.e. gm.paintAll();
 		/* window.addEventListener('resize', () => {
-			this.setUp(gameManager.game.puzzle_w, gameManager.game.puzzle_h);
+			this.setUp(gameManager.game.width, gameManager.game.puzzle_h);
 		}); */
 		this.unitOnScreenH = 64;
 		this.unitOnScreenVO = 48;
@@ -262,7 +267,7 @@ export class View {
 		}
 				
 		for (const idx of gm.renderSet) {
-			const [x,y] = gm.game.xy_from_idx(idx);
+			const [x,y] = gm.game.xyFromIdx(idx);
 			if(this.drawMethod == 0) {	// old draw method for using an image as a source
 				this.renderImg(x,y,0,0);		// background hexagon
 				this.renderImg(x,y,game.grid[y][x].angle,game.grid[y][x].shape);	// line shape
@@ -292,12 +297,12 @@ export class View {
 		
 		// update fps
 		if(gameManager.showFPS) {
-			let fps = Math.floor(1000.0 / (ts - game.last_ts));
+			let fps = Math.floor(1000.0 / (ts - game.tsPrior));
 			document.getElementById("fps_text").innerHTML = '' + fps;
 		}
 		
 		// update cached timestamp
-		game.last_ts = ts;
+		game.tsPrior = ts;
 
 		// update puzzle title
 		document.getElementById("puzzle_title").innerHTML = game.title;

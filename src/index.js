@@ -4,24 +4,24 @@ import { GameManager, gameManager } from './game-manager.js';
 
 
 document.getElementById("restart_button").addEventListener('click', function() {
-    gameManager.restart({restart_solved:true});
+    gameManager.restart({restartSolved:true});
 });
 
 document.getElementById('prev_puzzle').addEventListener('click', function() {
-    gameManager.prev_puzzle();
+    gameManager.prevPuzzle();
 });
 
 let nps = document.getElementsByClassName('next_puzzle');
 for(let i=0; i<nps.length; i++) {
     nps.item(i).addEventListener('click', function() {
-        gameManager.next_puzzle();
+        gameManager.nextPuzzle();
     });
 };
 
 document.getElementById("pause").addEventListener('click', 
     /** @param { Event } ev */
     function(ev) {
-    const paused = gameManager.game.pause(gameManager.game.last_ts);
+    const paused = gameManager.game.pause(gameManager.game.tsPrior);
     const target = ev.target; // as HTMLInputElement
     if(target instanceof HTMLInputElement) {
         target.setAttribute('aria-pressed', paused.toString());
