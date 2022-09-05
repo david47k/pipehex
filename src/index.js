@@ -1,7 +1,9 @@
-/* Copyright 2022 David Atkinson */
+/* index.js
+ * Entry point. Initialise event handlers, initialise gameManager.
+ * Copyright 2022 David Atkinson <david47k@d47.co>
+ */
 
 import { GameManager, gameManager } from './game-manager.js';
-
 
 document.getElementById("restart_button").addEventListener('click', function() {
     gameManager.restart({restartSolved:true});
@@ -18,78 +20,59 @@ for(let i=0; i<nps.length; i++) {
     });
 };
 
-document.getElementById("pause").addEventListener('click', 
-    /** @param { Event } ev */
-    function(ev) {
-    const paused = gameManager.game.pause(gameManager.game.tsPrior);
-    const target = ev.target; // as HTMLInputElement
-    if(target instanceof HTMLInputElement) {
-        target.setAttribute('aria-pressed', paused.toString());
+/** @param {EventTarget} target
+ *  @param {boolean} active */
+function setAriaPressed(target, active) {
+    if(target instanceof HTMLButtonElement) {
+        target.setAttribute('aria-pressed', active.toString());
     }
+}    
+
+/** @param {Element} element
+ *  @param {boolean} active */
+function setHideClass(element, active) {
+    if(active) {
+        element.classList.remove('hide');
+    } else {
+        element.classList.add('hide');
+    }    
+}    
+
+document.getElementById("pause").addEventListener('click', function(ev) {
+    const paused = gameManager.game.pause(gameManager.game.tsPrior);
+    setAriaPressed(ev.target, paused);
 });
 
 document.getElementById('show_fps').addEventListener('click', function(ev) {
-    const show = !gameManager.showFPS;
-    let fpsElement = document.getElementById('menu_fps');
-    gameManager.showFPS = show;
-    const target = ev.target; // as HTMLInputElement
-    if(target instanceof HTMLInputElement) {
-        target.setAttribute('aria-pressed', show.toString());
-    }
-    if(show) {
-        fpsElement.classList.remove('hide');
-    } else {
-        fpsElement.classList.add('hide');
-    }    
+    gameManager.showFPS = !gameManager.showFPS;
+    const active = gameManager.showFPS;
+    let element = document.getElementById('menu_fps');
+    setAriaPressed(ev.target, active);
+    setHideClass(element, active);
 });
 
 document.getElementById('show_timer').addEventListener('click', function(ev) {
-    const show = !gameManager.showTimer;
-    const timerElement = document.getElementById('menu_time');
-    gameManager.showTimer = show;
-    const target = ev.target; // as HTMLInputElement
-    if(target instanceof HTMLInputElement) {
-        target.setAttribute('aria-pressed', show.toString());
-    }
-    if(show) {
-        timerElement.classList.remove('hide');
-    } else {
-        timerElement.classList.add('hide');
-    }    
-    
+    gameManager.showTimer = !gameManager.showTimer;
+    const active = gameManager.showTimer;
+    let element = document.getElementById('menu_time');
+    setAriaPressed(ev.target, active);
+    setHideClass(element, active);
 });
 
 document.getElementById("settings_button").addEventListener('click', function (ev) {
-    const target = ev.target; // as HTMLInputElement
-    if(target instanceof HTMLInputElement) {
-        const pressed = target.getAttribute('aria-pressed') === 'true';
-        target.setAttribute('aria-pressed', (!pressed).toString());
-    }
-    let settings_menu = document.getElementById("settings_menu");
-    if(settings_menu.classList.contains("hide")) {
-        settings_menu.classList.remove("hide");
-    } else {
-        settings_menu.classList.add("hide");
-    }    
+    gameManager.showSettings = !gameManager.showSettings;
+    const active = gameManager.showSettings;
+    let element = document.getElementById('settings_menu');
+    setAriaPressed(ev.target, active);
+    setHideClass(element, active);
 });
 
 document.getElementById("stats_button").addEventListener('click', function (ev) {
-    let settings_menu = document.getElementById("stats");
-    const target = ev.target; // as HTMLInputElement
-    if(gameManager.showStats == false) {
-        gameManager.updateStats();
-        gameManager.showStats = true;
-        settings_menu.classList.remove("hide");
-        if(target instanceof HTMLInputElement) {
-            target.setAttribute('aria-pressed', 'true');
-        }
-    } else {
-        gameManager.showStats = false;
-        settings_menu.classList.add("hide");
-        if(target instanceof HTMLInputElement) {
-            target.setAttribute('aria-pressed', 'false');
-        }
-    }    
+    gameManager.showStats = !gameManager.showStats;
+    const active = gameManager.showStats;
+    let element = document.getElementById('stats');
+    setAriaPressed(ev.target, active);
+    setHideClass(element, active);
 });
 
 let sgs = document.getElementById("settings_game_size");

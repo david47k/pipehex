@@ -64,6 +64,7 @@ export class GameManager {
 		this.showStats = false;
 		this.showFPS = false;
 		this.showTimer = true;
+		this.showSettings = false;
 		
 		readFile('/puzzles5.csv', a => this.PUZZLES.set('5', a));
 		readFile('/puzzles10.csv', a => this.PUZZLES.set('10', a ));
