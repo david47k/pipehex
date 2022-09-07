@@ -8,6 +8,7 @@ import { gameManager } from './game-manager.js';
 import { Game } from './game.js';
 import { setAriaPressed, setHideClass } from './util.js';
 import Storage from './storage.js';
+import { PATTERNS5 } from './patterns.js';
 
 /*
  * for future use
@@ -77,6 +78,9 @@ export class View {
 		}
 		console.log('setting up...')
 		this.renderButtons();
+
+		this.gameWidth = gameWidth;
+		this.gameHeight = gameHeight;
 
 		let { width, height } = this.container.getBoundingClientRect();
 		height = document.documentElement.clientHeight - 15; // override the above height estimate: 10px padding 2px border 3px unknown
@@ -168,9 +172,6 @@ export class View {
 		let height = this.unitOnScreenH;
 		canvas.setAttribute('width',width.toString());
 		canvas.setAttribute('height',height.toString());
-		//this.unitOnScreenH = 64;
-		//this.unitOnScreenVO = 48;
-		//this.unitOnScreenW = 56;
 		ctx.clearRect(0,0,width,height);
 		if(colorIdx >= PALETTE_ANNEX) ctx.fillStyle = PALETTE_B[colorIdx - PALETTE_ANNEX];
 		else ctx.fillStyle = PALETTE[colorIdx];
@@ -291,10 +292,15 @@ export class View {
 				this.renderImg(x,y,game.grid[y][x].angle,game.grid[y][x].shape);	// line shape
 			} else if(this.drawMethod == 1) {
 				let hexCanvas = null;
-				if(gm.game.winningAnimation.started) {
-					let palidx = Math.floor((ts - gm.game.winningAnimation.start_ts)/100) + x;
-					palidx = Math.floor(palidx)%(PALETTE.length);
-					hexCanvas = this.getHexCanvas(palidx);
+				if(gm.game.winningAnimation.started && this.gameWidth == 5 && this.gameHeight == 5) {
+					let patternIdx = gm.puzzleIdx % PATTERNS5.length;
+					let palIdx = Math.floor((ts - gm.game.winningAnimation.start_ts)/100) + PATTERNS5[patternIdx][y*this.gameWidth+x];
+					palIdx = Math.floor(palIdx)%(PALETTE.length);
+					hexCanvas = this.getHexCanvas(palIdx);					
+				} else if(gm.game.winningAnimation.started) {
+					let palIdx = Math.floor((ts - gm.game.winningAnimation.start_ts)/100) + y;
+					palIdx = Math.floor(palIdx)%(PALETTE.length);
+					hexCanvas = this.getHexCanvas(palIdx);					
 				} else if(gm.loopedSet.has(idx)) {
 					hexCanvas = this.getHexCanvas(PALETTE_ANNEX+1);
 				} else {
