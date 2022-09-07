@@ -15,6 +15,7 @@
  */
 
 import { arrayEqual } from './util.js';
+import { PALETTE_ANNEX } from './view.js';
 
 /* These are unused:
 const angles = [ "E", "SE", "SW", "W", "NW", "NE" ];
@@ -99,7 +100,7 @@ function connsToShapeAngle(conns) {		// conns type: bool[6]
 
 export class Tile {
 	constructor( { conns = [coinFlip(), coinFlip(), coinFlip(), coinFlip(), coinFlip(), coinFlip()],
-					color = 0, isolated = true, locked = false, looped = false } = {} ) {
+					color = PALETTE_ANNEX, isolated = true, locked = false, looped = false } = {} ) {
 		this.conns = conns;
 		let shapeAngle = connsToShapeAngle(this.conns);
 		this.shape = shapeAngle.s;

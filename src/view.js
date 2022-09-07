@@ -14,25 +14,24 @@ import Storage from './storage.js';
 let tile_sizes = [ [ 56, 64, 48 ], [ 42, 48, 36 ], [ 28, 32, 24 ] ];
 */
 
-/* Palette based on Munsell colors */
+// Original palette, 12 colours, purple is a bit dark
+const PALETTE_ORIGINAL = [ '#f51a3c','#a92393','#623297','#0060b3','#0078c5','#02b2b5',
+	'#24bb4e','#add73c','#ffdd00','#ffc110','#fc9b1e','#f97625',];
 
-const mpalette_c8v7_names = [
-'5R', '10R', '5YR', '10YR', '5Y', '10Y', '5GY', '10GY', '5G', '10G',
-'5BG', '10BG', '5B', '10B', '5PB', '10PB', '5P', '10P', '5RP', '10RP'
-];
+// Modified original palette that brightens up the dark colours and seperates the blues
+const PALETTE_SHARP = [ '#f51a3c','#a92393','#743bb2','#0067c2','#00a7c5','#02b597',
+	'#24bb4e','#add73c','#ffdd00','#ffc110','#fc9b1e','#f97625',];
 
-const mpalette_c8v7 = [ 
+// Munsell C8V7 palette, 20 colours
+const PALETTE_MC8V7 = [ 
 '#d99a94', '#da9d80', '#d4a46e', '#cbab5d', '#bfb351', '#b5b94e', '#a6bf5a', '#92c477', '#83c596', '#7ec4a5', 
 '#79c3b6', '#77c0c8', '#7dbbd8', '#89b4e1', '#9aade4', '#aea4e2', '#bc9fd8', '#ca9ac8', '#cf98bf', '#d798a4'
 ];
-// grey APPROXIMATELY a9a9a9
 
-export const PALETTE_SIZE = 13;
-export const PALETTE = ['#bbbbbb', '#f51a3c','#a92393','#623297','#0060b3','#0078c5','#02b2b5',
-	'#24bb4e','#add73c','#ffdd00','#ffc110','#fc9b1e','#f97625',];
 
-export const palette_dark = ['#cd1031','#8e107c','#51227e','#025197','#0064a3','#009797',
-	'#1a9b43','#8eb330','#e3c100','#d9a10f','#d68115','#d3621a',];
+export const PALETTE = PALETTE_MC8V7;
+export const PALETTE_ANNEX = 20;
+export const PALETTE_B = [ '#a7a7a7', '#555555', '#333333', '#000000' ];
 
 const drawMethods = ['img','canvas_ctx2d','manual_mask'];
 
@@ -141,7 +140,7 @@ export class View {
 		}
 	}
 	/** @returns {HTMLCanvasElement} */
-	getHexCanvas(colorIdx = PALETTE_SIZE) {
+	getHexCanvas(colorIdx = PALETTE_ANNEX+2) {
 		const key = colorIdx+65536;	// allowing 16 bits for line tile cache
 		if(this.canvasCache.has(key)) {
 			return this.canvasCache.get(key);
@@ -157,10 +156,9 @@ export class View {
 		//this.unitOnScreenVO = 48;
 		//this.unitOnScreenW = 56;
 		ctx.clearRect(0,0,width,height);
-		if(colorIdx == PALETTE_SIZE) ctx.fillStyle = '#333333';
-		else if(colorIdx == PALETTE_SIZE+1) ctx.fillStyle = '#555555';
+		if(colorIdx >= PALETTE_ANNEX) ctx.fillStyle = PALETTE_B[colorIdx - PALETTE_ANNEX];
 		else ctx.fillStyle = PALETTE[colorIdx];
-		ctx.strokeStyle = '#000000';
+		ctx.strokeStyle = PALETTE_B[3];
 		ctx.lineWidth = 1;
 		ctx.beginPath();
 		ctx.moveTo(width/2, 0);
@@ -201,11 +199,15 @@ export class View {
 		canvas.setAttribute('width',width.toString());
 		canvas.setAttribute('height',height.toString());
 		ctx.lineCap = 'butt';
-		ctx.lineJoin = 'bevel';					// will this help with Safari-iOS ugly butts?
-		//ctx.imageSmoothingQuality = 'high'; 
+		ctx.lineJoin = 'bevel';
 		ctx.clearRect(0,0,width,height);
-		ctx.fillStyle = PALETTE[colorIdx];
-		ctx.strokeStyle = PALETTE[colorIdx];
+		if (colorIdx >= PALETTE_ANNEX) {
+			ctx.fillStyle = PALETTE_B[colorIdx - PALETTE_ANNEX];
+			ctx.strokeStyle = PALETTE_B[colorIdx - PALETTE_ANNEX];
+		} else {
+			ctx.fillStyle = PALETTE[colorIdx];
+			ctx.strokeStyle = PALETTE[colorIdx];
+		}
 		ctx.lineWidth = height / 8;
 		// For each angle:
 		let count = 0;
@@ -275,12 +277,12 @@ export class View {
 				let hexCanvas = null;
 				if(gm.game.winningAnimation.started) {
 					let palidx = Math.floor((ts - gm.game.winningAnimation.start_ts)/100) + x;
-					palidx = 1 + Math.floor(palidx)%(PALETTE_SIZE-2);
+					palidx = Math.floor(palidx)%(PALETTE.length);
 					hexCanvas = this.getHexCanvas(palidx);
 				} else if(gm.loopedSet.has(idx)) {
-					hexCanvas = this.getHexCanvas(PALETTE_SIZE+1);
+					hexCanvas = this.getHexCanvas(PALETTE_ANNEX+1);
 				} else {
-					hexCanvas = this.getHexCanvas();
+					hexCanvas = this.getHexCanvas(PALETTE_ANNEX+2);
 				}
 				
 				this.renderFromCanvas(hexCanvas, x, y);

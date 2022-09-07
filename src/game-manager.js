@@ -4,7 +4,7 @@
  */
 
 import CONFIG from './config.js';
-import { View, PALETTE_SIZE } from './view.js';
+import { View, PALETTE, PALETTE_ANNEX } from './view.js';
 import Storage from './storage.js';
 import { Timer, timestringFrom } from './timer.js';
 import { Tile } from './tile.js';
@@ -286,7 +286,7 @@ export class GameManager {
 				if(this.game.isIsolated(nx,ny)) {
 					if(this.game.grid[ny][nx].isolated == false) {
 						this.game.grid[ny][nx].isolated = true;
-						this.game.grid[ny][nx].color = 0;
+						this.game.grid[ny][nx].color = PALETTE_ANNEX;
 						this.renderSet.add(this.game.idxFromXy(nx,ny));
 					}
 				} else {
@@ -302,7 +302,7 @@ export class GameManager {
 			let colorIdx = this.game.grid[y][x].color;
 			if(tileSet.size <= 1) {
 				this.game.grid[y][x].isolated = true;
-				colorIdx = 0;
+				colorIdx = PALETTE_ANNEX;
 			} else {
 				this.game.grid[y][x].isolated = false;
 				
@@ -310,8 +310,8 @@ export class GameManager {
 				iter.next();
 				let cxy = iter.next().value;		// change the color to the SECOND item in the set
 				colorIdx = this.game.tileFromIdx(cxy).color;
-				if(colorIdx==0) {
-					colorIdx = 1+((y*this.game.width+x)%(PALETTE_SIZE-1));	// randomish color
+				if(colorIdx==PALETTE_ANNEX) {
+					colorIdx = ((y*this.game.width+x)%(PALETTE.length));	// randomish color
 					// TODO: should ideally pick a colour that is dissimilar to surrounding colours
 				}
 			}
