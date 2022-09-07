@@ -6,6 +6,7 @@
 import { Tile }  from './tile.js';
 import { gameManager } from './game-manager.js';
 import { Game } from './game.js';
+import { setAriaPressed, setHideClass } from './util.js';
 import Storage from './storage.js';
 
 /*
@@ -34,24 +35,6 @@ export const PALETTE_ANNEX = 20;
 export const PALETTE_B = [ '#a7a7a7', '#555555', '#333333', '#000000' ];
 
 const drawMethods = ['img','canvas_ctx2d','manual_mask'];
-
-/** @param {EventTarget} target
- *  @param {boolean} active */
-function setAriaPressed(target, active) {
-    if(target instanceof HTMLButtonElement) {
-        target.setAttribute('aria-pressed', active.toString());
-    }
-}    
-
-/** @param {Element} element
- *  @param {boolean} active */
-function setHideClass(element, active) {
-    if(active) {
-        element.classList.remove('hide');
-    } else {
-        element.classList.add('hide');
-    }    
-}    
 
 
 export class View {

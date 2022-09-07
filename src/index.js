@@ -5,6 +5,7 @@
 
 import { GameManager, gameManager } from './game-manager.js';
 import Storage from './storage.js';
+import { setAriaPressed, setHideClass } from './util.js';
 
 document.getElementById("restart_button").addEventListener('click', function() {
     gameManager.restart({restartSolved:true});
@@ -14,6 +15,7 @@ document.getElementById('prev_puzzle').addEventListener('click', function() {
     gameManager.prevPuzzle();
 });
 
+
 let nps = document.getElementsByClassName('next_puzzle');
 for(let i=0; i<nps.length; i++) {
     nps.item(i).addEventListener('click', function() {
@@ -21,23 +23,6 @@ for(let i=0; i<nps.length; i++) {
     });
 };
 
-/** @param {EventTarget} target
- *  @param {boolean} active */
-function setAriaPressed(target, active) {
-    if(target instanceof HTMLButtonElement) {
-        target.setAttribute('aria-pressed', active.toString());
-    }
-}    
-
-/** @param {Element} element
- *  @param {boolean} active */
-function setHideClass(element, active) {
-    if(active) {
-        element.classList.remove('hide');
-    } else {
-        element.classList.add('hide');
-    }    
-}    
 
 document.getElementById("pause").addEventListener('click', function(ev) {
     const paused = gameManager.game.pause(gameManager.game.tsPrior);
