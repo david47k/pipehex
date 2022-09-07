@@ -238,6 +238,8 @@ export class GameManager {
 	/** @param {number} n */
 	loadGame(n) {
 		// will return a fully loaded game, or just a dummy game
+		this.showTimer = (Storage.loadStr('showTimer','true') === 'true');
+		this.showFPS = (Storage.loadStr('showFPS','false') === 'true');
 		let loaded = Storage.loadObj('savegame',{width:0,height:0});
 		return new Game(loaded);
 	}

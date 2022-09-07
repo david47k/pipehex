@@ -4,6 +4,7 @@
  */
 
 import { GameManager, gameManager } from './game-manager.js';
+import Storage from './storage.js';
 
 document.getElementById("restart_button").addEventListener('click', function() {
     gameManager.restart({restartSolved:true});
@@ -47,16 +48,19 @@ document.getElementById('show_fps').addEventListener('click', function(ev) {
     gameManager.showFPS = !gameManager.showFPS;
     const active = gameManager.showFPS;
     let element = document.getElementById('menu_fps');
-    setAriaPressed(ev.target, active);
+    let target = document.getElementById('show_fps');
+    setAriaPressed(target, active);
     setHideClass(element, active);
-});
+    Storage.saveStr('showFPS',active.toString());});
 
 document.getElementById('show_timer').addEventListener('click', function(ev) {
     gameManager.showTimer = !gameManager.showTimer;
     const active = gameManager.showTimer;
     let element = document.getElementById('menu_time');
-    setAriaPressed(ev.target, active);
+    let target = document.getElementById('show_timer');
+    setAriaPressed(target, active);
     setHideClass(element, active);
+    Storage.saveStr('showTimer',active.toString());
 });
 
 document.getElementById("settings_button").addEventListener('click', function (ev) {

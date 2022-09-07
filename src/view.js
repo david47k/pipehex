@@ -35,6 +35,25 @@ export const PALETTE_B = [ '#a7a7a7', '#555555', '#333333', '#000000' ];
 
 const drawMethods = ['img','canvas_ctx2d','manual_mask'];
 
+/** @param {EventTarget} target
+ *  @param {boolean} active */
+function setAriaPressed(target, active) {
+    if(target instanceof HTMLButtonElement) {
+        target.setAttribute('aria-pressed', active.toString());
+    }
+}    
+
+/** @param {Element} element
+ *  @param {boolean} active */
+function setHideClass(element, active) {
+    if(active) {
+        element.classList.remove('hide');
+    } else {
+        element.classList.add('hide');
+    }    
+}    
+
+
 export class View {
 	/** @param {number} gameWidth
 	 *  @param {number} gameHeight */
@@ -67,8 +86,14 @@ export class View {
 	}
 	/** @param {number} gameWidth
 	 *  @param {number} gameHeight */
-	setUp(gameWidth, gameHeight) {	// gameWidth and gameHeight are in grid units
+	setUp(gameWidth, gameHeight) {	// gameWidth and gameHeight are in grid units			
+		// some things cannot be done until the gameManager object is fully initialised
+		if(!gameManager) {
+			setTimeout(() => { this.setUp(gameWidth, gameHeight); }, 10);
+			return;
+		}
 		console.log('setting up...')
+		this.renderButtons();
 
 		let { width, height } = this.container.getBoundingClientRect();
 		height = document.documentElement.clientHeight - 15; // override the above height estimate: 10px padding 2px border 3px unknown
@@ -107,7 +132,15 @@ export class View {
 		// render (update stats display) with current stats
 		this.renderStats();
 	}
-	
+	renderButtons() {
+		// update state of showFPS button
+		setAriaPressed(document.getElementById('show_fps'), gameManager.showFPS);
+		setHideClass(document.getElementById('menu_fps'), gameManager.showFPS);
+		
+		// update state of showTimer button
+		setAriaPressed(document.getElementById('show_timer'), gameManager.showTimer);
+		setHideClass(document.getElementById('menu_time'), gameManager.showTimer);
+	}	
 	/** @param {number} dx
 	 *  @param {number} dy
 	 *  @param {number} sx
