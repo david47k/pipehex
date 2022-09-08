@@ -54,18 +54,17 @@ const drawMethods = ['img','canvas_ctx2d','manual_mask'];
 	 *  @param {number} dy
 	 *  @param {number} sx
 	 *  @param {number} sy */
-	renderImg(dx, dy, sx, sy) {
-/*		sx = sx * this.srcBlockW;
+/*	renderImg(dx, dy, sx, sy) {
+		sx = sx * this.srcBlockW;
 		sy = sy * this.srcBlockH;
 		if(dy%2==1) dx += 0.5;
 		
-//		if(this.srcImage.complete && this.context) { 
-		if(this.context) {
+		if(this.srcImage.complete && this.context) { 
 			this.context.drawImage(this.srcImage,
 				sx,sy,
 				this.srcBlockW,this.srcBlockH,
 				Math.floor(this.tileW * dx),
 				this.tileVO * dy,
 				this.tileW,this.tileH);
-		} */
-	}
+		} 
+	} */
