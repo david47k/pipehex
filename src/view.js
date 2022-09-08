@@ -10,19 +10,6 @@ import { setAriaPressed, setHideClass } from './util.js';
 import Storage from './storage.js';
 import { PATTERNS5 } from './patterns.js';
 
-/*
- * for future use
- * 
-let tile_sizes = [ [ 56, 64, 48 ], [ 42, 48, 36 ], [ 28, 32, 24 ] ];
-*/
-
-// Original palette, 12 colours, purple is a bit dark
-const PALETTE_ORIGINAL = [ '#f51a3c','#a92393','#623297','#0060b3','#0078c5','#02b2b5',
-	'#24bb4e','#add73c','#ffdd00','#ffc110','#fc9b1e','#f97625',];
-
-// Modified original palette that brightens up the dark colours and seperates the blues
-const PALETTE_SHARP = [ '#f51a3c','#a92393','#743bb2','#0067c2','#00a7c5','#02b597',
-	'#24bb4e','#add73c','#ffdd00','#ffc110','#fc9b1e','#f97625',];
 
 // Munsell C8V7 palette, 20 colours
 const PALETTE_MC8V7 = [ 
@@ -30,12 +17,9 @@ const PALETTE_MC8V7 = [
 '#79c3b6', '#77c0c8', '#7dbbd8', '#89b4e1', '#9aade4', '#aea4e2', '#bc9fd8', '#ca9ac8', '#cf98bf', '#d798a4'
 ];
 
-
 export const PALETTE = PALETTE_MC8V7;
 export const PALETTE_ANNEX = 20;
 export const PALETTE_B = [ '#a0a0a0', '#555555', '#333333', '#000000' ];
-
-const drawMethods = ['img','canvas_ctx2d','manual_mask'];
 
 
 export class View {
@@ -51,18 +35,6 @@ export class View {
 		this.canvasCache = new Map();
 		this.hexTileMask = null;
 		
-/*		this.srcImage = new Image();   // Create new img element
-		this.srcImage.loading = "eager";
-		this.srcImage.addEventListener('load', function() {
-			console.log("image loaded"); 
-			gameManager.view.setUp(gameManager.game.width, gameManager.game.puzzle_h);
-		}); */
-		
-		// the resize event will need fixing so it redraws everything
-		// i.e. gm.paintAll();
-		/* window.addEventListener('resize', () => {
-			this.setUp(gameManager.game.width, gameManager.game.puzzle_h);
-		}); */
 		this.tileH = 64;
 		this.tileVO = 48;
 		this.tileW = 56;
@@ -85,23 +57,6 @@ export class View {
 
 		let { width, height } = this.container.getBoundingClientRect();
 		height = document.documentElement.clientHeight - 15; // override the above height estimate: 10px padding 2px border 3px unknown
-
-		//this.unitOnScreen = Math.floor(Math.min( width / gameWidth,	height / gameHeight ));
-		//this.unitOnScreen = ( Math.floor(this.unitOnScreen / 4) * 4 );	// canvas drawImage is crappy, reduce aliasing artifacts
-		//if(this.unitOnScreen > 256) this.unitOnScreen = 256; // reducing aliasing artifacts - can also split src into individual sprites
-		//console.log("screen unit:", this.tileW, " ", this.tileH, " ", this.tileVO);
-
-		// Because ImageBitmap options & imageSmoothingQuality aren't yet widely supported, and OffscreenCanvas isn't widely supported,
-		// we are using pre-sized images. we can scale down and it looks OK, but we can't scale up.
-		// blocksizes 64, 128, 192, 256
-		// we return because this method will get called again once the image is loaded
-		if(this.srcBlockH != 64) {
-			this.srcBlockH = 64;
-			this.srcBlockW = 56;
-/*			this.srcImage.src = 'tiles_56x64.png';
-			console.log('loading src image');
-			return; */
-		}
 
 		// remove the old canvas, if it exists
 		const [child] = this.container.children;
@@ -129,25 +84,6 @@ export class View {
 		setAriaPressed(document.getElementById('show_timer'), gameManager.showTimer);
 		setHideClass(document.getElementById('menu_time'), gameManager.showTimer);
 	}	
-	/** @param {number} dx
-	 *  @param {number} dy
-	 *  @param {number} sx
-	 *  @param {number} sy */
-	renderImg(dx, dy, sx, sy) {
-/*		sx = sx * this.srcBlockW;
-		sy = sy * this.srcBlockH;
-		if(dy%2==1) dx += 0.5;
-		
-//		if(this.srcImage.complete && this.context) { 
-		if(this.context) {
-			this.context.drawImage(this.srcImage,
-				sx,sy,
-				this.srcBlockW,this.srcBlockH,
-				Math.floor(this.tileW * dx),
-				this.tileVO * dy,
-				this.tileW,this.tileH);
-		} */
-	}
 	/** @param {HTMLCanvasElement} srcCanvas
 	 *  @param {number} dx
 	 *  @param {number} dy */
@@ -343,9 +279,8 @@ export class View {
 				
 		for (const idx of gm.renderSet) {
 			const [x,y] = gm.game.xyFromIdx(idx);
-			if(this.drawMethod == 0) {	// old draw method for using an image as a source
-				this.renderImg(x,y,0,0);		// background hexagon
-				this.renderImg(x,y,game.grid[y][x].angle,game.grid[y][x].shape);	// line shape
+			if(this.drawMethod == 0) {
+				// method for drawing from image, no longer used
 			} else if(this.drawMethod == 1) {
 				let hexCanvas = null;
 				if(gm.game.winningAnimation.started && this.gameWidth == 5 && this.gameHeight == 5) {
