@@ -338,4 +338,4 @@ export class GameManager {
 // Global export
 
 export var gameManager = new GameManager();    // global scope
-// window.gameManager = new GameManager(); roughly equivalent to this
+Object.defineProperty(window, 'gameManager', { value: gameManager, writable: true });
