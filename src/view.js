@@ -33,7 +33,7 @@ const PALETTE_MC8V7 = [
 
 export const PALETTE = PALETTE_MC8V7;
 export const PALETTE_ANNEX = 20;
-export const PALETTE_B = [ '#a7a7a7', '#555555', '#333333', '#000000' ];
+export const PALETTE_B = [ '#a0a0a0', '#555555', '#333333', '#000000' ];
 
 const drawMethods = ['img','canvas_ctx2d','manual_mask'];
 
@@ -49,6 +49,7 @@ export class View {
 		this.drawMethod = 1;
 		this.alwaysRenderAll = 0;
 		this.canvasCache = new Map();
+		this.hexTileMask = null;
 		
 /*		this.srcImage = new Image();   // Create new img element
 		this.srcImage.loading = "eager";
@@ -62,9 +63,9 @@ export class View {
 		/* window.addEventListener('resize', () => {
 			this.setUp(gameManager.game.width, gameManager.game.puzzle_h);
 		}); */
-		this.unitOnScreenH = 64;
-		this.unitOnScreenVO = 48;
-		this.unitOnScreenW = 56;
+		this.tileH = 64;
+		this.tileVO = 48;
+		this.tileW = 56;
 
 		this.setUp(gameWidth, gameHeight); // this function will start the image loading process
 	}
@@ -88,7 +89,7 @@ export class View {
 		//this.unitOnScreen = Math.floor(Math.min( width / gameWidth,	height / gameHeight ));
 		//this.unitOnScreen = ( Math.floor(this.unitOnScreen / 4) * 4 );	// canvas drawImage is crappy, reduce aliasing artifacts
 		//if(this.unitOnScreen > 256) this.unitOnScreen = 256; // reducing aliasing artifacts - can also split src into individual sprites
-		//console.log("screen unit:", this.unitOnScreenW, " ", this.unitOnScreenH, " ", this.unitOnScreenVO);
+		//console.log("screen unit:", this.tileW, " ", this.tileH, " ", this.tileVO);
 
 		// Because ImageBitmap options & imageSmoothingQuality aren't yet widely supported, and OffscreenCanvas isn't widely supported,
 		// we are using pre-sized images. we can scale down and it looks OK, but we can't scale up.
@@ -111,9 +112,9 @@ export class View {
 		// create a new canvas
 		const canvas = document.createElement('canvas');
 		this.container.appendChild(canvas);
-		this.context = canvas.getContext('2d');
-		canvas.setAttribute('width',''+(gameWidth * this.unitOnScreenW + Math.floor(this.unitOnScreenW/2)));
-		canvas.setAttribute('height',''+((gameHeight + 1) * this.unitOnScreenVO - (this.unitOnScreenH/2)));
+		this.context = canvas.getContext('2d', {alpha:false});
+		canvas.setAttribute('width',''+(gameWidth * this.tileW + Math.floor(this.tileW/2)));
+		canvas.setAttribute('height',''+((gameHeight + 1) * this.tileVO - (this.tileH/2)));
 		//console.log('new canvas created');
 		
 		// render (update stats display) with current stats
@@ -142,9 +143,9 @@ export class View {
 			this.context.drawImage(this.srcImage,
 				sx,sy,
 				this.srcBlockW,this.srcBlockH,
-				Math.floor(this.unitOnScreenW * dx),
-				this.unitOnScreenVO * dy,
-				this.unitOnScreenW,this.unitOnScreenH);
+				Math.floor(this.tileW * dx),
+				this.tileVO * dy,
+				this.tileW,this.tileH);
 		} */
 	}
 	/** @param {HTMLCanvasElement} srcCanvas
@@ -153,10 +154,10 @@ export class View {
 	renderFromCanvas(srcCanvas, dx, dy) {
 		if(dy%2==1) dx += 0.5;
 		if(this.context) {
-			this.context.drawImage(srcCanvas, 0, 0, this.unitOnScreenW, this.unitOnScreenH,
-				Math.floor(this.unitOnScreenW * dx),
-				this.unitOnScreenVO * dy,
-				this.unitOnScreenW,this.unitOnScreenH);
+			this.context.drawImage(srcCanvas, 0, 0, this.tileW, this.tileH,
+				Math.floor(this.tileW * dx),
+				this.tileVO * dy,
+				this.tileW,this.tileH);
 		}
 	}
 	/** @returns {HTMLCanvasElement} */
@@ -168,36 +169,87 @@ export class View {
 		
 		let canvas = document.createElement('canvas');
 		let ctx = canvas.getContext('2d');		
-		let width = this.unitOnScreenW;
-		let height = this.unitOnScreenH;
+		let width = this.tileW;
+		let height = this.tileH;
 		canvas.setAttribute('width',width.toString());
 		canvas.setAttribute('height',height.toString());
-		ctx.clearRect(0,0,width,height);
+		//ctx.clearRect(0,0,width,height);
 		if(colorIdx >= PALETTE_ANNEX) ctx.fillStyle = PALETTE_B[colorIdx - PALETTE_ANNEX];
 		else ctx.fillStyle = PALETTE[colorIdx];
 		ctx.strokeStyle = PALETTE_B[3];
 		ctx.lineWidth = 1;
+		ctx.translate(0.5,0.5);		// middle of the pixel, avoids antialiasing
 		ctx.beginPath();
-		ctx.moveTo(width/2, 0);
-		ctx.lineTo(width, height/4);
-		ctx.lineTo(width, height*3/4);
-		ctx.lineTo(width/2, height);
-		ctx.lineTo(0, height*3/4);
-		ctx.lineTo(0, height/4);
-		ctx.lineTo(width/2, 0);
-		ctx.fill();
-		ctx.stroke();
-
+		let hh = height - 1;
+		let ww = width - 1;
+		ctx.moveTo(ww/2, 0);
+		ctx.lineTo(ww, hh/4);
+		ctx.lineTo(ww, hh*3/4);
+		ctx.lineTo(ww/2, hh);
+		ctx.lineTo(0, hh*3/4);
+		ctx.lineTo(0, hh/4);
+		ctx.lineTo(ww/2, 0);
+ 		ctx.fill();
+ 		ctx.stroke();
+		ctx.translate(0,0);
+		this.applyHexTileMask(ctx);
 		// cache the result
 		this.canvasCache.set(key,canvas);
 		return canvas;
+	}
+	/** @param {CanvasRenderingContext2D} ctx */
+	applyHexTileMask(ctx) {			// apply non-anti-aliased mask
+		if(this.hexTileMask == null) this.generateHexTileMask();
+		let data = ctx.getImageData(0, 0, this.tileW, this.tileH);
+		for(let i=0; i<this.tileW*this.tileH; i++) {
+			const offset = i*4+3;
+			data.data[offset] = this.hexTileMask[i];
+		}
+		ctx.putImageData(data,0,0);		
+	}
+	/** @param {CanvasRenderingContext2D} ctx */
+	applyHexTileBorderMask(ctx) {	// apply mask only to force transparent border corners
+		if(this.hexTileMask == null) this.generateHexTileMask();
+		let data = ctx.getImageData(0, 0, this.tileW, this.tileH);
+		for(let i=0; i<this.tileW*this.tileH; i++) {
+			const offset = i*4+3;
+			if(this.hexTileMask[i]===0) data.data[offset] = 0;
+		}
+		ctx.putImageData(data,0,0);				
+	}
+	generateHexTileMask() {	// apply mask to avoid anti-aliasing artifacts
+		let mask = Array();
+		for(let i=0;i<this.tileW*this.tileH;i++) {
+			mask.push(0);
+		}
+		let x1 = 25;
+		// top and bottom triangles
+		for(let y=1;y<=15;y++) {
+			if(y%4 == 0) x1 += 1;
+			for(let x=x1; x<this.tileW-x1; x++) {
+				mask[y*this.tileW+x] = 255;
+/*				if(x+1<this.tileW-x1-1) {	// bottom triangle is slightly narrower, honestly not sure
+											// we're going to get this looking good unless we split base
+											// and line layers
+					mask[(this.tileH-1-y)*this.tileW+x+1] = 255;
+				}*/
+				mask[(this.tileH-1-y)*this.tileW+x] = 255;
+			}
+			x1 -= 2;
+		}
+		// rect
+		for(let y=16; y<this.tileH-16; y++) {
+			for(let x=0; x<this.tileW; x++) {
+				mask[y*this.tileW+x] = 255;
+			}
+		}
+		this.hexTileMask = mask;
 	}
 	/** @param {number[]} conns
 	 *  @param {number} colorIdx
 	 *  @returns {HTMLCanvasElement} */
 	getLineCanvas(conns, colorIdx) {
 		// Use 2d context line drawing functions.
-
 		// check if it is in cache
 		// create key
 		let key = 0;
@@ -211,8 +263,8 @@ export class View {
 
 		let canvas = document.createElement('canvas');
 		let ctx = canvas.getContext('2d');
-		let width = this.unitOnScreenW;
-		let height = this.unitOnScreenH;
+		let width = this.tileW;
+		let height = this.tileH;
 		canvas.setAttribute('width',width.toString());
 		canvas.setAttribute('height',height.toString());
 		ctx.lineCap = 'butt';
@@ -228,19 +280,23 @@ export class View {
 		ctx.lineWidth = height / 8;
 		// For each angle:
 		let count = 0;
+		let hh = height;
+		let ww = width;
 		for(let i=0; i<conns.length; i++) {
 			if(!conns[i]) continue;
 			count++;
 			ctx.beginPath();
-			ctx.moveTo(width/2,height/2);
-			let dx = width/2;
-			let dy = height/2;
-			if(i==0) dx = width;
-			else if(i==1) { dy = height * 7 / 8; dx = width * 3 / 4; }
-			else if(i==2) { dy = height * 7 / 8; dx = width * 1 / 4; }
+			ctx.moveTo(ww/2,hh/2);
+			let dx = ww/2;
+			let dy = hh/2;
+			let ddy = 0; //let ddy = 0.2;	//4:7 ratio. this doesn't work great because our mask isn't great
+			let ddx = ddy*4/7;
+			if(i==0) dx = ww;
+			else if(i==1) { dy = hh * 7 / 8 + ddy; dx = ww * 3 / 4 + ddx; }
+			else if(i==2) { dy = hh * 7 / 8 + ddy; dx = ww * 1 / 4 - ddx; }
 			else if(i==3) dx = 0;
-			else if(i==4) { dy = height * 1 / 8; dx = width * 1 / 4; }
-			else if(i==5) { dy = height * 1 / 8; dx = width * 3 / 4; }
+			else if(i==4) { dy = hh * 1 / 8 - ddy; dx = ww * 1 / 4 - ddx; }
+			else if(i==5) { dy = hh * 1 / 8 - ddy; dx = ww * 3 / 4 + ddx; }
 			ctx.lineTo(dx,dy);
 			ctx.stroke();
 		}
@@ -248,10 +304,10 @@ export class View {
 		let r = height/16;
 		if(count==1) r = height/8;
 		ctx.beginPath();
-		ctx.moveTo(width/2,height/2);
-		ctx.arc(width/2,height/2,r,0,2*Math.PI,true);
+		ctx.moveTo(ww/2,hh/2);
+		ctx.arc(ww/2,hh/2,r,0,2*Math.PI,true);
 		ctx.fill(); // automatically closes the path
-
+		this.applyHexTileBorderMask(ctx);
 		// cache the result
 		this.canvasCache.set(key,canvas);
 
