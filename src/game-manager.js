@@ -65,6 +65,7 @@ export class GameManager {
 		this.showFPS = false;
 		this.showTimer = true;
 		this.showSettings = false;
+		this.renderSet = new Set();
 		
 		readFile('/puzzles5.csv', a => this.PUZZLES.set('5', a));
 		readFile('/puzzles10.csv', a => this.PUZZLES.set('10', a ));
@@ -73,8 +74,6 @@ export class GameManager {
 		readFile('/puzzles30.csv', a => this.PUZZLES.set('30', a ));
 		readFile('/puzzles40.csv', a => this.PUZZLES.set('40', a ));
 
-		this.renderSet = new Set();
-		this.loopedSet = new Set();
 		this.game = this.loadGame(parseInt(this.puzzleType));
 		this.updateStats();
 		
@@ -173,17 +172,24 @@ export class GameManager {
 	}
 	/** @param {number} clickedIdx */
 	updateLoopSet(clickedIdx = -1, surroundingTiles = [-1]) {
+		let alreadyLooped = new Set();
+		let newLooped = new Set();
 		/** @var {number[]} */
 		let tiles = [];
-		if(clickedIdx == -1) {
+		if(clickedIdx == -1) {	// check all tiles
 			for(let n=0;n<(this.game.height*this.game.width);n++) {
 				tiles.push(n);
 			}
-		} else {
+		} else { // just check the tiles near where we clicked
 			tiles.push(clickedIdx);
 			for(let i=0; i<surroundingTiles.length; i++) {
 				tiles.push(surroundingTiles[i]);
-			}		
+			}
+			for(let y=0; y<this.game.height; y++) {
+				for(let x=0; x<this.game.width; x++) {
+					if(this.game.grid[y][x].looped) alreadyLooped.add(this.game.idxFromXy(x,y));
+				}
+			}
 		}
 		
 		while(tiles.length > 0) {
@@ -191,43 +197,44 @@ export class GameManager {
 			if(idx==-1) continue;
 			let [tx, ty] = this.game.xyFromIdx(idx);
 			let [tileSet, loopedSet] = this.game.getConnectedTiles(tx,ty,true);
-			for (const ti of tileSet) {
+			for (const ti of tileSet) {	// don't check tiles we've already checked
 				let midx = tiles.findIndex( el => el === ti );
 				if(midx != -1) {
 					tiles[midx] = -1;
 				}
 			}
-			for(const lt of loopedSet) {
-				this.loopedSet.add(lt);
+			for(const lt of loopedSet) { // add any loops we found to loopedSet
+				newLooped.add(lt);
+				let [x,y] = this.game.xyFromIdx(lt);
+				this.game.grid[y][x].looped = true;
 			}
 		}
-		// we need to render everything that has changed between prevSet and loopedSet
-		// ie. anything exclusive to one set, but not anything that is in both
-		for(const psi of this.prevLoopedSet) {
-			if(!this.loopedSet.has(psi)) {
-				this.renderSet.add(psi);
+		// we need to render everything that has changed.
+		// some things previously looped, may no longer be looped.
+		for(const idx of alreadyLooped) {
+			if(!newLooped.has(idx)) {
+				// no longer looped!
+				let [x,y] = this.game.xyFromIdx(idx);
+				this.game.grid[y][x].looped = false;
+				this.renderSet.add(idx);
 			}
 		}
-		for(const lsi of this.loopedSet) {
-			if(!this.prevLoopedSet.has(lsi)) {
-				this.renderSet.add(lsi);
+		for(const idx of newLooped) {
+			if(!alreadyLooped.has(idx)) {
+				// new to being looped
+				this.renderSet.add(idx);
 			}
 		}
 	}
 	/** @param {number} ts */
 	render(ts) {
 		this.game.ts = ts;
-		this.game.timer.update(ts);
-				
+		this.game.timer.update(ts);				
 		this.view.render();
-		// now loops have been rendered, we can clear the difference
-		this.prevLoopedSet = this.loopedSet;
-		this.loopedSet = new Set();
 	}
 	paintAll() {
 		// note: paintAll does not call render(), render will be called by the animationFrame main() loop
 		this.renderSet = new Set();
-		this.loopedSet = new Set();
 		this.updateLoopSet();
 		for(let i=0;i<(this.game.height*this.game.width);i++) {
 			this.renderSet.add(i);

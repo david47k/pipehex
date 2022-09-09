@@ -292,7 +292,7 @@ export class View {
 					let palIdx = Math.floor((ts - gm.game.winningAnimation.start_ts)/100) + y;
 					palIdx = Math.floor(palIdx)%(PALETTE.length);
 					hexCanvas = this.getHexCanvas(palIdx);					
-				} else if(gm.loopedSet.has(idx)) {
+				} else if(game.grid[y][x].looped) {
 					hexCanvas = this.getHexCanvas(PALETTE_ANNEX+1);
 				} else {
 					hexCanvas = this.getHexCanvas(PALETTE_ANNEX+2);
