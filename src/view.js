@@ -64,13 +64,16 @@ export class View {
 			this.container.removeChild(child);
 		}
 		
+		// calculate width and height of canvas
+		let canvasWidth = gameWidth * this.tileW + Math.floor(this.tileW/2);
+		let canvasHeight = (gameHeight + 1) * this.tileVO - (this.tileH/2);
+		
 		// create a new canvas
 		const canvas = document.createElement('canvas');
 		this.container.appendChild(canvas);
 		this.context = canvas.getContext('2d', {alpha:false});
-		canvas.setAttribute('width',''+(gameWidth * this.tileW + Math.floor(this.tileW/2)));
-		canvas.setAttribute('height',''+((gameHeight + 1) * this.tileVO - (this.tileH/2)));
-		//console.log('new canvas created');
+		canvas.setAttribute('width',''+canvasWidth);
+		canvas.setAttribute('height',''+canvasHeight);
 		
 		// render (update stats display) with current stats
 		this.renderStats();
@@ -85,12 +88,13 @@ export class View {
 		setHideClass(document.getElementById('menu_time'), gameManager.showTimer);
 	}	
 	/** @param {HTMLCanvasElement} srcCanvas
+	 *  @param {CanvasRenderingContext2D} ctx
 	 *  @param {number} dx
 	 *  @param {number} dy */
-	renderFromCanvas(srcCanvas, dx, dy) {
+	renderFromCanvas(srcCanvas, ctx, dx, dy) {
 		if(dy%2==1) dx += 0.5;
-		if(this.context) {
-			this.context.drawImage(srcCanvas, 0, 0, this.tileW, this.tileH,
+		if(ctx) {
+			ctx.drawImage(srcCanvas, 0, 0, this.tileW, this.tileH,
 				Math.floor(this.tileW * dx),
 				this.tileVO * dy,
 				this.tileW,this.tileH);
@@ -280,7 +284,6 @@ export class View {
 		for (const idx of gm.renderSet) {
 			const [x,y] = gm.game.xyFromIdx(idx);
 			if(this.drawMethod == 0) {
-				// method for drawing from image, no longer used
 			} else if(this.drawMethod == 1) {
 				let hexCanvas = null;
 				if(gm.game.winningAnimation.started && this.gameWidth == 5 && this.gameHeight == 5) {
@@ -298,10 +301,10 @@ export class View {
 					hexCanvas = this.getHexCanvas(PALETTE_ANNEX+2);
 				}
 				
-				this.renderFromCanvas(hexCanvas, x, y);
+				this.renderFromCanvas(hexCanvas, this.context, x, y);
 				let colorIdx = gm.game.grid[y][x].color;
 				let srcCanvas = this.getLineCanvas(game.grid[y][x].conns,colorIdx);
-				this.renderFromCanvas(srcCanvas, x, y);
+				this.renderFromCanvas(srcCanvas, this.context, x, y);
 			} else {
 				// unimplemented draw method
 			}
