@@ -171,14 +171,19 @@ export class GameManager {
 		this.updateStats();
 		this.restart();
 	}
-	updateLoopSet() {
-		const prevSet = this.loopedSet;
-		this.loopedSet = new Set();
-		// TO DO: have a more efficient mode, where we only look at tiles surounding the clicked tile
-
+	/** @param {number} clickedIdx */
+	updateLoopSet(clickedIdx = -1, surroundingTiles = [-1]) {
+		/** @var {number[]} */
 		let tiles = [];
-		for(let n=0;n<(this.game.height*this.game.width);n++) {
-			tiles.push(n);
+		if(clickedIdx == -1) {
+			for(let n=0;n<(this.game.height*this.game.width);n++) {
+				tiles.push(n);
+			}
+		} else {
+			tiles.push(clickedIdx);
+			for(let i=0; i<surroundingTiles.length; i++) {
+				tiles.push(surroundingTiles[i]);
+			}		
 		}
 		
 		while(tiles.length > 0) {
@@ -193,19 +198,18 @@ export class GameManager {
 				}
 			}
 			for(const lt of loopedSet) {
-				//console.log('lt',lt);
 				this.loopedSet.add(lt);
 			}
 		}
 		// we need to render everything that has changed between prevSet and loopedSet
 		// ie. anything exclusive to one set, but not anything that is in both
-		for(const psi of prevSet) {
+		for(const psi of this.prevLoopedSet) {
 			if(!this.loopedSet.has(psi)) {
 				this.renderSet.add(psi);
 			}
 		}
 		for(const lsi of this.loopedSet) {
-			if(!prevSet.has(lsi)) {
+			if(!this.prevLoopedSet.has(lsi)) {
 				this.renderSet.add(lsi);
 			}
 		}
@@ -214,14 +218,11 @@ export class GameManager {
 	render(ts) {
 		this.game.ts = ts;
 		this.game.timer.update(ts);
-		
-		// check for a change
-		if(this.renderSet.size > 0) {
-			// locate loops, in the whole puzzle
-			this.updateLoopSet();
-		}
-		
+				
 		this.view.render();
+		// now loops have been rendered, we can clear the difference
+		this.prevLoopedSet = this.loopedSet;
+		this.loopedSet = new Set();
 	}
 	paintAll() {
 		// note: paintAll does not call render(), render will be called by the animationFrame main() loop
@@ -242,6 +243,36 @@ export class GameManager {
 		this.showFPS = (Storage.loadStr('showFPS','false') === 'true');
 		let loaded = Storage.loadObj('savegame',{width:0,height:0});
 		return new Game(loaded);
+	}
+	speedTest() {
+		// test the speed of the rendering / updating code
+		this.setSize(30);
+		this.puzzleIdx = 0;
+		this.restart({restartSolved: true});
+		let time1 = Date.now();
+		for(let c=0; c<6; c++) {
+			for(let n=0; n<30; n++) {
+				this.click(n,n,0);
+				this.render(this.game.tsPrior);
+			}
+		}
+		let time2 = Date.now();
+		for(let c=0; c<6; c++) {
+			for(let n=0; n<30; n++) {
+				this.click(n,n,0);
+				this.render(this.game.tsPrior);
+			}
+		}
+		let time3 = Date.now();	
+		let speedTestArr = Storage.loadObj('speedTest', [ 0, 0, 0, ]);
+		let t = time3 - time2;
+		let avg = (speedTestArr[0]+speedTestArr[1]+speedTestArr[2])/3;
+		console.log("Last 3 avg (ms): ", avg);
+		console.log("This test  (ms): ", t);
+		console.log("Difference (ms): ", t-avg); 
+		speedTestArr.shift();
+		speedTestArr.push(t);
+		Storage.saveObj('speedTest', speedTestArr);
 	}
 	updateStats() {
 		/** @type {Array<number>} */
@@ -284,7 +315,8 @@ export class GameManager {
 			// check if we need to change colours of surrounding tiles
 			let surrounding_tiles = this.game.getSurroundingTiles(x,y);
 			while(surrounding_tiles.length > 0) {
-				let [nx,ny] = surrounding_tiles.pop();
+				let nidx = surrounding_tiles.pop();
+				let [nx,ny] = this.game.xyFromIdx(nidx);
 				if(this.game.isIsolated(nx,ny)) {
 					if(this.game.grid[ny][nx].isolated == false) {
 						this.game.grid[ny][nx].isolated = true;
@@ -299,6 +331,9 @@ export class GameManager {
 					}
 				}
 			}
+			// check for loops
+			this.updateLoopSet(y*this.game.width+x, surrounding_tiles);
+
 			// check if we are connected to any tiles, in which case we need to change colors
 			let [tileSet,loopedSet] = this.game.getConnectedTiles(x,y,true);
 			let colorIdx = this.game.grid[y][x].color;

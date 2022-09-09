@@ -245,16 +245,18 @@ export class Game {
 	}
 	/** @param {number} x
 	 *  @param {number} y
-	 *  @returns {number[][]} */
+	 *  @returns {number[]} */
 	getSurroundingTiles(x,y) {
 		// return an array of surrounding tiles (i.e. not the ones on the edge)
 		// array of items [x,y]
+		/** @var {number[]} */
 		let arr = [];
 		for(let a=0; a<6; a++) {
 			let nxy = this.xyAtAngle(x,y,a);	// get tile that's at that angle
 			if(nxy == null) continue; // no tile there
 			let [nx,ny] = nxy;
-			arr.push([nx,ny]);
+			let idx = this.idxFromXy(nx,ny);
+			arr.push(idx);
 		}
 		return arr;
 	}

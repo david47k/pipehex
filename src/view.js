@@ -128,7 +128,7 @@ export class View {
  		ctx.fill();
  		ctx.stroke();
 		ctx.translate(0,0);
-		this.applyHexTileMask(ctx);
+		//this.applyHexTileMask(ctx);
 		// cache the result
 		this.canvasCache.set(key,canvas);
 		return canvas;
@@ -243,7 +243,7 @@ export class View {
 		ctx.moveTo(ww/2,hh/2);
 		ctx.arc(ww/2,hh/2,r,0,2*Math.PI,true);
 		ctx.fill(); // automatically closes the path
-		this.applyHexTileBorderMask(ctx);
+		//this.applyHexTileBorderMask(ctx);
 		// cache the result
 		this.canvasCache.set(key,canvas);
 
