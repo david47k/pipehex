@@ -100,6 +100,19 @@ export class View {
 				this.tileW,this.tileH);
 		}
 	}
+	/** @param {CanvasRenderingContext2D} ctx
+	 *  @param {number} dx
+	 *  @param {number} dy */
+	clearHex(ctx, dx, dy) {	// similar to clearRect
+		if(dy%2==1) dx += 0.5;		
+		if(this.hexTileMask == null) this.generateHexTileMask();
+		let data = ctx.getImageData(Math.floor(this.tileW*dx), this.tileVO*dy, this.tileW, this.tileH);
+		for(let i=0; i<this.tileW*this.tileH; i++) {
+			const offset = i*4;
+			if(this.hexTileMask[i]!==0) data.data.fill(0,offset,offset+4);
+		}
+		ctx.putImageData(data,Math.floor(this.tileW*dx),this.tileVO*dy);
+	}
 	/** @returns {HTMLCanvasElement} */
 	getHexCanvas(colorIdx = PALETTE_ANNEX+2) {
 		const key = colorIdx+65536;	// allowing 16 bits for line tile cache
@@ -148,41 +161,34 @@ export class View {
 		ctx.putImageData(data,0,0);		
 	}
 	/** @param {CanvasRenderingContext2D} ctx */
-	applyHexTileBorderMask(ctx) {	// apply mask only to force transparent border corners
+	applyHexTileBorderMask(ctx) {	// apply mask only to force transparent corners
 		if(this.hexTileMask == null) this.generateHexTileMask();
 		let data = ctx.getImageData(0, 0, this.tileW, this.tileH);
 		for(let i=0; i<this.tileW*this.tileH; i++) {
 			const offset = i*4+3;
 			if(this.hexTileMask[i]===0) data.data[offset] = 0;
 		}
-		ctx.putImageData(data,0,0);				
+		ctx.putImageData(data,0,0);
 	}
-	generateHexTileMask() {	// apply mask to avoid anti-aliasing artifacts
-		let mask = Array();
-		for(let i=0;i<this.tileW*this.tileH;i++) {
-			mask.push(0);
-		}
-		let x1 = 25;
+	generateHexTileMask() {	// mask that describes the shape of the hexagon
+		let mask = new Uint8ClampedArray(this.tileW*this.tileH); // set to 0
+		let x1 = 27;
 		// top and bottom triangles
-		for(let y=1;y<=15;y++) {
-			if(y%4 == 0) x1 += 1;
-			for(let x=x1; x<this.tileW-x1; x++) {
-				mask[y*this.tileW+x] = 255;
-/*				if(x+1<this.tileW-x1-1) {	// bottom triangle is slightly narrower, honestly not sure
-											// we're going to get this looking good unless we split base
-											// and line layers
-					mask[(this.tileH-1-y)*this.tileW+x+1] = 255;
-				}*/
-				mask[(this.tileH-1-y)*this.tileW+x] = 255;
-			}
+		for(let y=0;y<=15;y++) {
+			if([3,6,10,13].some(n => n==y)) x1 += 1;
+			let start = y*this.tileW+x1;
+			let end = (y+1)*this.tileW-x1;
+			mask.fill(255, start, end);
+			start = (this.tileH-1-y)*this.tileW+x1;
+			end = (this.tileH-y)*this.tileW-x1;
+			mask.fill(255, start, end);
 			x1 -= 2;
 		}
 		// rect
-		for(let y=16; y<this.tileH-16; y++) {
-			for(let x=0; x<this.tileW; x++) {
-				mask[y*this.tileW+x] = 255;
-			}
-		}
+		let start = 16*this.tileW;
+		let end = (this.tileH-16)*this.tileW;
+		mask.fill(255, start, end);
+		// save it
 		this.hexTileMask = mask;
 	}
 	/** @param {number[]} conns
