@@ -5,14 +5,18 @@
   "main": "src/index.js",
   "private": true,
   "author": "David Atkinson <david47k@d47.co>",
-  "license": "All rights reserved.",
+  "license": "Copyright 2022 David Atkinson. All rights reserved.",
   "dependencies": {
     "corepack": "^0.13.0",
     "webpack": "^5.74.0"
   },
+  "scripts": {
+    "build": "tsc && webpack --config webpack.config.js",
+    "serve": "webpack serve"
+  },
   "devDependencies": {
     "typescript": "^4.7.4",
-    "webpack-cli": "^4.10.0"
-  },
-  "packageManager": "yarn@3.2.3"
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.15.1"
+  }
 }

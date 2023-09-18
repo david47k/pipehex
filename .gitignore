@@ -1,0 +1,6 @@
+node_modules
+scratch
+.vs
+.vscode
+ts_out
+ts_types
