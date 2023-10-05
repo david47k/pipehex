@@ -85,6 +85,9 @@ export class View {
 		this.context = canvas.getContext('2d', {alpha:false});
 		canvas.setAttribute('width',''+canvasWidth);
 		canvas.setAttribute('height',''+canvasHeight);
+
+		// update body min-width... this makes the top menus take at least the width of the puzzle (as opposed to the width of the screen)
+		document.body.style.minWidth = canvasWidth + 'px';
 		
 		// render (update stats display) with current stats
 		this.renderStats();

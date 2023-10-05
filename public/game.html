@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1.0, minimum-scale=1.0, target-densitydpi=device-dpi">
     <title>PIPEHEX</title>
     <!-- Copyright 2022 David Atkinson -->
     <style>
@@ -10,12 +11,15 @@
       body { -webkit-touch-callout: none !important;
         touch-action: manipulation; } /* safari fixes */
       a { -webkit-user-select: none !important; } /* safari fix */
-      body { background: #000; color: #ddd; font-family: sans-serif; }
+      body { background: #000; color: #ddd; font-family: sans-serif; overflow: visible; }
       button,div,span { font-family: sans-serif; font-size: 12pt; font-weight: normal; }
+      #menuzone { position: sticky; top: 0; }
       #menu { background-color: #789; color: #ddd; }
       #menu>div { display: inline-block; background-color: #789; padding: 0.2em 0.5em; }
       #settings_menu { background-color: #798; color: #ddd; }
       #settings_menu>div { padding: 0.2em 0.5em; }
+      #winner { background-color: #446; color: #ddd; }
+      #winner>div { padding: 0.2em 0.5em; }
       #stats { background-color: #879; color: #ddd; }
       #stats>div { padding: 0.2em 0.5em; }
       .hide { display: none; }
@@ -40,49 +44,53 @@
   </head>
   <body>
     <div id="pre"><noscript>This page contains javascript content, please enable javascript in your browser.</noscript></div>
-    <div id="menu">
-      <div id="menu_title" class="boltalic">PIPEHEX</div>
-      <div id="menu_settings"><button id="settings_button" aria-pressed="false">Settings</button></div>
-      <div id="menu_puzzle_title"><span id="puzzle_title"></span></div>
-      <div id="menu_restart"><button id="restart_button">Restart</button></div>
-      <div id="menu_time">Time: <span id="timer_text" class="mw3"></span></div>
-      <div id="menu_pause"><button id="pause" aria-pressed="false">Pause</button></button></div>
-      <div id="menu_stats"><button id="stats_button" aria-pressed="false">Stats</button></div>
-      <div id="menu_fps" class="hide">FPS: <span id="fps_text" class="mw3"></span></div>
-    </div>
-    <div id="settings_menu" class="hide">
-      <div id="settings_title" class="boltalic">Settings</div>
-      <div id="settings_game_size">Game size: 
-        <button id="game_size_5x5" data="5">5x5</button>
-        <button id="game_size_10x10" data="10">10x10</button>
-        <button id="game_size_15x15" data="15">15x15</button>
-        <button id="game_size_20x20" data="20">20x20</button>
-        <button id="game_size_30x30" data="30">30x30</button>
-        <button id="game_size_40x40" data="40">40x40</button>        
+    <div id="menuzone">
+      <div id="menu">
+        <div id="menu_title" class="boltalic">PIPEHEX</div>
+        <div id="menu_settings"><button id="settings_button" aria-pressed="false">Settings</button></div>
+        <div id="menu_puzzle_title"><span id="puzzle_title"></span></div>
+        <div id="menu_restart"><button id="restart_button">Restart</button></div>
+        <div id="menu_time">Time: <span id="timer_text" class="mw3"></span></div>
+        <div id="menu_pause"><button id="pause" aria-pressed="false">Pause</button></button></div>
+        <div id="menu_stats"><button id="stats_button" aria-pressed="false">Stats</button></div>
+        <div id="menu_fps" class="hide">FPS: <span id="fps_text" class="mw3"></span></div>
       </div>
-      <div>
-        <button id="prev_puzzle">Prev Puzzle</button>
+      <div id="settings_menu" class="hide">
+        <div id="settings_title" class="boltalic">Settings</div>
+        <div id="settings_game_size">Game size: 
+          <button id="game_size_5x5" data="5">5x5</button>
+          <button id="game_size_10x10" data="10">10x10</button>
+          <button id="game_size_15x15" data="15">15x15</button>
+          <button id="game_size_20x20" data="20">20x20</button>
+          <button id="game_size_30x30" data="30">30x30</button>
+          <button id="game_size_40x40" data="40">40x40</button>        
+        </div>
+        <div>
+          <button id="prev_puzzle">Prev Puzzle</button>
+          <button class="next_puzzle">Next Puzzle</button>
+        </div>
+        <div>
+          <button id="show_fps" aria-pressed="false">Show FPS</button>
+          <button id="show_timer" aria-pressed="true">Show Timer</button>
+        </div>
+      </div>
+      <div id="stats" class="hide">
+        <div class="boltalic">Statistics</div>
+        <div>
+          For puzzles of <span id="stats_size"></span>:<br>
+          <span class="mw10">Number solved </span><span id="stats_num"></span><br>
+          <span class="mw10">Best </span><span id="stats_best" class=""></span><br>
+          <span class="mw10">Avg of 3 </span><span id="stats_best3" class=""></span><br>
+          <span class="mw10">Avg of 5 </span><span id="stats_best5" class=""></span><br>
+          <span class="mw10">Avg of 10 </span><span id="stats_best10" class=""></span><br>
+        </div>
+      </div>
+      <div id="winner" class="hide">
+        <div>
+        <span class="large">Solved in </span><span id="wintime" class="large"></span><br><br>
         <button class="next_puzzle">Next Puzzle</button>
-      </div>
-      <div>
-        <button id="show_fps" aria-pressed="false">Show FPS</button>
-        <button id="show_timer" aria-pressed="true">Show Timer</button>
-      </div>
-    </div>
-    <div id="winner" class="hide">
-      <span class="large">Solved in </span><span id="wintime" class="large"></span><br>
-      <button class="next_puzzle">Next Puzzle</button><br>
-    </div>
-    <div id="stats" class="hide">
-      <div class="boltalic">Statistics</div>
-      <div>
-        For puzzles of <span id="stats_size"></span>:<br>
-        <span class="mw10">Number solved </span><span id="stats_num"></span><br>
-        <span class="mw10">Best </span><span id="stats_best" class=""></span><br>
-        <span class="mw10">Avg of 3 </span><span id="stats_best3" class=""></span><br>
-        <span class="mw10">Avg of 5 </span><span id="stats_best5" class=""></span><br>
-        <span class="mw10">Avg of 10 </span><span id="stats_best10" class=""></span><br>
-      </div>
+        </div>
+      </div>      
     </div>
     <div id="container"></div>
     <script src="main.js" type="module"></script>
