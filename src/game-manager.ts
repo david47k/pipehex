@@ -1,4 +1,4 @@
-/* game-manager.js
+/* game-manager.ts
  * Manages the game, other components, takes interaction with the player.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */
@@ -11,8 +11,7 @@ import { Tile } from './tile.js';
 import { arrayEqual } from './util.js';
 import { Game } from './game.js';
 
-/** @param {number} n */
-function rand_inclusive(n) {
+function rand_inclusive(n: number) {
 	return Math.trunc(Math.random() * (n+1));
 }
 
@@ -31,10 +30,8 @@ function rand_inclusive(n) {
 // }
 
 
-
-/** @param {string} filename
- *  @param {function(Array<string>):void} onloadfn */
- function readFile(filename, onloadfn) {
+type OnLoadFn = (a: Array<string>) => void;
+function readFile(filename: string, onloadfn: OnLoadFn) {
     const oReq = new XMLHttpRequest();
     oReq.open("GET", filename, true);
     oReq.responseType = "text";
@@ -53,6 +50,19 @@ function rand_inclusive(n) {
     oReq.send(null);
 }
 
+export interface GameManager {
+	PUZZLES: Map<string,Array<string>>;
+	puzzleType: any;
+	puzzleIdx: any;
+	showStats: boolean;
+	showFPS: boolean;
+	showTimer: boolean;
+	showSettings: boolean;
+	renderSet: Set<number>;
+	game: Game;
+	view: View;
+	stats: any;
+}
 
 export class GameManager {
 	constructor() {
@@ -162,20 +172,20 @@ export class GameManager {
 		// save the game state
 		this.saveGame();
 	}
-	/** @param {number} n */
-	setSize(n) {
+
+	setSize(n: number) {
 		this.puzzleType = n.toString();
 		Storage.saveStr('puzzleType',this.puzzleType);
 		this.puzzleIdx = Storage.loadInt('puzzleIdx'+this.puzzleType,0);
 		this.updateStats();
 		this.restart();
 	}
-	/** @param {number} clickedIdx */
-	updateLoopSet(clickedIdx = -1, surroundingTiles = [-1]) {
-		let alreadyLooped = new Set();
-		let newLooped = new Set();
+
+	updateLoopSet(clickedIdx: number = -1, surroundingTiles = [-1]) {
+		let alreadyLooped: Set<number> = new Set();
+		let newLooped: Set<number> = new Set();
 		/** @var {number[]} */
-		let tiles = [];
+		let tiles: number[] = [];
 		if(clickedIdx == -1) {	// check all tiles
 			for(let n=0;n<(this.game.height*this.game.width);n++) {
 				tiles.push(n);
@@ -226,8 +236,8 @@ export class GameManager {
 			}
 		}
 	}
-	/** @param {number} ts */
-	render(ts) {
+
+	render(ts: number) {
 		this.game.ts = ts;
 		this.game.timer.update(ts);				
 		this.view.render();
@@ -243,8 +253,8 @@ export class GameManager {
 	saveGame() {
 		Storage.saveObj('savegame',this.game);
 	}
-	/** @param {number} n */
-	loadGame(n) {
+
+	loadGame(n: number) {
 		// will return a fully loaded game, or just a dummy game
 		this.showTimer = (Storage.loadStr('showTimer','true') === 'true');
 		this.showFPS = (Storage.loadStr('showFPS','false') === 'true');
@@ -310,10 +320,8 @@ export class GameManager {
 				this.game.winningAnimation.start_ts = this.game.ts;
 		}
 	}
-	/** @param {number} x
-	 *  @param {number} y
-	 *  @param {number} buttons */
-	click(x,y,buttons) {
+
+	click(x: number, y: number, buttons: number) {
 		if(!this.game.won) {
 			if(buttons==0 || buttons==1) this.game.grid[y][x].rotate();
 			else if(buttons==2) this.game.grid[y][x].rotate(true);

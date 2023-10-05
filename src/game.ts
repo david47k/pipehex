@@ -1,4 +1,4 @@
-/* game.js
+/* game.ts
  * The game/puzzle, loading methods, game state, interactions etc.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */
@@ -8,6 +8,23 @@ import { Tile } from './tile.js';
 import { arrayEqual } from './util.js';
 
 const BASE = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
+
+export interface Game {
+	width: number;
+	height: number;
+	grid: Tile[][]|null;
+	solvedGrid: Tile[][]|null;
+	won: boolean;
+	title: string;
+	timer: Timer;
+	wintime: string;
+	ts: number | null;
+	tsPrior: number | null;
+	winningAnimation: any;
+	tileW: number;
+	tileH: number;
+	tileVO: number;
+}
 
 export class Game {
 	/** @constructor
@@ -25,7 +42,7 @@ export class Game {
 		this.won = false;
 		this.title = '(puzzle title)';
 		this.timer = new Timer();
-		this.wintime  ='';
+		this.wintime = '';
 		
 		// this is a funny way of avoiding jsdoc/ts destructuring type issues
 		for(const [key, value] of Object.entries(params)) {
@@ -44,29 +61,24 @@ export class Game {
 		this.ts = 0;
 		this.winningAnimation = { started: false, start_ts: 0 };
 	}
-	/** @param {number} idx
-	 *  @returns {Tile} */
-	tileFromIdx(idx) {
+
+	tileFromIdx(idx: number): Tile {
 		let y = ~~(idx/this.width);	// works for 32-bit positive numbers
 		let x = idx%this.width;
 		return this.grid[y][x];
 	}
-	/** @param {number} idx
-	 *  @returns {[number,number]} */
-	xyFromIdx(idx) {
+
+	xyFromIdx(idx: number): [number,number] {
 		let y = ~~(idx/this.width);
 		let x = idx % this.width;
 		return [x,y];
 	}
-	/** @param {number} x
-	 *  @param {number} y
-	 *  @returns {number} */
-	idxFromXy(x,y) {
+
+	idxFromXy(x: number, y:number): number {
 		return (y*this.width+x);
 	}
-	/** @param {Tile[][] | null} oldgrid
-	 *  @returns {Tile[][]} */	
-	newGrid(oldgrid = null) {
+
+	newGrid(oldgrid: Tile[][]|null = null): Tile[][] {
 		let grid = [];
 		for(let y=0; y<this.height; y++) {
 			let row = [];
@@ -78,9 +90,8 @@ export class Game {
 		}
 		return grid;
 	}
-	/** @param {string} puzstr
-	 *  @returns {Tile[][]} */
-	newGridFromPuzstr(puzstr) {
+
+	newGridFromPuzstr(puzstr: string): Tile[][] {
 		let grid = this.newGrid();
 		// load puzzle string
 		let bytes = puzstr.split('');
@@ -103,8 +114,8 @@ export class Game {
 		// the same color!!!
 		return grid;
 	}
-	/** @returns {boolean} */	
-	haveWinCondition() {
+	
+	haveWinCondition(): boolean {
 		// does this.grid == this.solvedGrid?
 		if(!Array.isArray(this.solvedGrid)) return false;
 		for(let y=0; y<this.height;y++) {
@@ -119,9 +130,8 @@ export class Game {
 		this.won = true;
 		return true;
 	}
-	/** @param {number} ts
-	 *  @returns {boolean} */
-	pause(ts) {		// return true if we are now paused, false if we are now running
+
+	pause(ts: number): boolean {		// return true if we are now paused, false if we are now running
 		if(!this.timer.running) {
 			this.timer.start(ts);
 			return false;
@@ -130,8 +140,8 @@ export class Game {
 			return true;
 		}
 	}
-	/** @param {string} s */
-	loadLevelString(s) {
+
+	loadLevelString(s: string) {
 		// level string is in format w,h,puzzle,solution
 		let [ title, w, h, puz, sol ] = s.split(',');
 		this.title = title;
@@ -140,10 +150,8 @@ export class Game {
 		this.grid = this.newGridFromPuzstr(puz);
 		this.solvedGrid = this.newGridFromPuzstr(sol);
 	}
-	/** @param {number} px
-	 *  @param {number} py
-	 *  @returns {[number,number]} */
-	xyFromPixelCoords(px,py) {
+
+	xyFromPixelCoords(px: number, py: number): [number,number] {
 		// we can perform a basic translation first
 		// then we need to do an advanced check for the corners
 		let gy = Math.floor(py / this.tileVO);
@@ -182,23 +190,17 @@ export class Game {
 		}
 		return [gx,gy]; // Warning: results may be out of range
 	}
-	/** @param {number} x
-	 *  @param {number} y
-	 *  @returns {boolean} */	
-	inBounds(x,y) {
+
+	inBounds(x: number, y: number): boolean {
 		return (x>=0 && x<this.width && y>= 0 && y<this.height);
 	}
-	/** @param {number} a
-	 *  @returns {number} */	
-	invertAngle(a) {
+	
+	invertAngle(a: number): number {
 		if(a > 2) { return a-3; }
 		return a+3;
 	}
-	/** @param {number} x
-	 *  @param {number} y
-	 *  @param {number} a
-	 *  @returns {[number,number] | null} */
-	xyAtAngle(x,y,a) {
+
+	xyAtAngle(x: number, y: number, a: number): [number,number] | null {
 		// return the [x,y] of a tile at the angle a
 		// or return null if there is no tile
 
@@ -226,10 +228,8 @@ export class Game {
 		if(nx<0 || nx>(this.width-1) || ny<0 || ny>(this.height-1)) return null;
 		return [nx,ny];
 	}
-	/** @param {number} x
-	 *  @param {number} y
-	 *  @returns {boolean} */	
-	isIsolated(x,y) {
+
+	isIsolated(x: number, y: number): boolean {
 		// return TRUE if this tile is not connected to any others
 		// check each angle from this tile
 		for(let a=0; a<6; a++) {
@@ -243,10 +243,8 @@ export class Game {
 		}
 		return true; 	// not connected
 	}
-	/** @param {number} x
-	 *  @param {number} y
-	 *  @returns {number[]} */
-	getSurroundingTiles(x,y) {
+
+	getSurroundingTiles(x: number, y: number): number[] {
 		// return an array of surrounding tiles (i.e. not the ones on the edge)
 		// array of items [x,y]
 		/** @var {number[]} */
@@ -260,17 +258,17 @@ export class Game {
 		}
 		return arr;
 	}
-	/** @param {number} px
-	 *  @param {number} py
-	 *  @param {boolean} recursive
-	 *  @returns {[Set<number>, Set<number>]} */	
-	getConnectedTiles(px,py,recursive) {		// depth first, easier to find loops
-		class StackItem {
-		/** @param {number} px
-		 *  @param {number} py
-		 *  @param {number | null} fromangle
-		 *  @param {number} angle */				
-			constructor(px,py,fromangle,angle) {
+
+	getConnectedTiles(px: number, py: number, recursive: boolean): [Set<number>, Set<number>] {		// depth first, easier to find loops
+		interface StackItem {
+			x: number;
+			y: number;
+			fromangle: number | null;
+			angle: number;
+		}
+		
+		class StackItem {			
+			constructor(px: number, py: number, fromangle: number | null, angle: number) {
 				this.x = px;
 				this.y = py;
 				this.fromangle = fromangle;
@@ -279,9 +277,9 @@ export class Game {
 		}
 		// return a set of [x,y] of tiles that are connected to this one
 		let stack = [new StackItem(px,py,null,0)];
-		let tileSet = new Set();
+		let tileSet: Set<number> = new Set();
 		tileSet.add(py*this.width+px);
-		let loopedSet = new Set();
+		let loopedSet: Set<number> = new Set();
 		
 		while(stack.length > 0) {
 			let item = stack.pop();

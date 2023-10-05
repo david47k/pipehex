@@ -1,4 +1,4 @@
-/* tile.js
+/* tile.ts
  * A hexagonal tile, including rotation, determining angles, shapes etc.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */
@@ -44,11 +44,7 @@ const shapeMatchArr = [
     [ 1, 1, 1, 1, 1, 1 ], // six         
 ];
 
-/** @param {number[]} connsA
- *  @param {number[]} connsB 
- *  @returns {{m:boolean, a:number}}
- */
-function shapeMatch(connsA, connsB) { // type ibool[6], ibool[6]
+function shapeMatch(connsA: number[], connsB: number[]): {m:boolean, a:number} { // type ibool[6], ibool[6]
 	var rconns = connsB;
 	for (var i=0; i<6; i++) {
 		if(arrayEqual(rconns, connsA)) {
@@ -60,10 +56,7 @@ function shapeMatch(connsA, connsB) { // type ibool[6], ibool[6]
 	return { m: false, a:0 };
 }
 	
-/** @param {number[]} conns
- *  @returns {{s:number,a:number}}
- */
-function connsToShapeAngle(conns) {		// conns type: bool[6]
+function connsToShapeAngle(conns: number[]): {s:number, a:number} {		// conns type: bool[6]
 	let pipeCount = 0;
 	let angleIdx = 0;
 	let angleFound = 0;
@@ -96,6 +89,16 @@ function connsToShapeAngle(conns) {		// conns type: bool[6]
 	}
 
 	return { s: shapeIdx, a: angleIdx };
+}
+
+export interface Tile {
+	conns: number[];
+	shape: number;
+	angle: number;
+	color: number;
+	isolated: boolean;
+	locked: boolean;
+	looped: boolean;
 }
 
 export class Tile {
@@ -133,15 +136,13 @@ export class Tile {
 			}			
 		}
 	}
-	/** @param {number[]} nconns */
-	setup(nconns) {
+	setup(nconns: number[]) {
 		this.conns = nconns;
 		const shapeAngle = connsToShapeAngle(this.conns);
 		this.shape = shapeAngle.s;
 		this.angle = shapeAngle.a;
 	}
-	/** @param {Tile} tile */
-	equal(tile) {
+	equal(tile: Tile) {
 		this.conns.every((x,i) => x == tile.conns[i]);
 	}
 }

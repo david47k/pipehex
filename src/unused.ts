@@ -1,4 +1,4 @@
-/* unused.js
+/* unused.ts
  * Unused methods / data that may come in handy in future.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */

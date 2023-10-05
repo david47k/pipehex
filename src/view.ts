@@ -1,4 +1,4 @@
-/* view.js
+/* view.ts
  * The view of the game, rendered to the HTML document / DOM.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */
@@ -21,11 +21,22 @@ export const PALETTE = PALETTE_MC8V7;
 export const PALETTE_ANNEX = 20;
 export const PALETTE_B = [ '#a0a0a0', '#555555', '#333333', '#000000' ];
 
+export interface View {
+	gameWidth: number;
+	gameHeight: number;
+	container: HTMLElement;
+	drawMethod: number;
+	alwaysRenderAll: number;
+	canvasCache: Map<number, HTMLCanvasElement>;
+	hexTileMask: any;
+	tileH: number;
+	tileVO: number;
+	tileW: number;
+	context: CanvasRenderingContext2D | null;
+}
 
 export class View {
-	/** @param {number} gameWidth
-	 *  @param {number} gameHeight */
-	constructor(gameWidth, gameHeight) {
+	constructor(gameWidth: number, gameHeight: number) {
 		this.gameWidth = gameWidth;
 		this.gameHeight = gameHeight;
 		this.container = document.getElementById('container');
@@ -41,9 +52,7 @@ export class View {
 
 		this.setUp(gameWidth, gameHeight); // this function will start the image loading process
 	}
-	/** @param {number} gameWidth
-	 *  @param {number} gameHeight */
-	setUp(gameWidth, gameHeight) {	// gameWidth and gameHeight are in grid units			
+	setUp(gameWidth: number, gameHeight: number) {	// gameWidth and gameHeight are in grid units			
 		// some things cannot be done until the gameManager object is fully initialised
 		if(!gameManager) {
 			setTimeout(() => { this.setUp(gameWidth, gameHeight); }, 10);
@@ -87,11 +96,7 @@ export class View {
 		setAriaPressed(document.getElementById('show_timer'), gameManager.showTimer);
 		setHideClass(document.getElementById('menu_time'), gameManager.showTimer);
 	}	
-	/** @param {HTMLCanvasElement} srcCanvas
-	 *  @param {CanvasRenderingContext2D} ctx
-	 *  @param {number} dx
-	 *  @param {number} dy */
-	renderFromCanvas(srcCanvas, ctx, dx, dy) {
+	renderFromCanvas(srcCanvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, dx: number, dy: number) {
 		if(dy%2==1) dx += 0.5;
 		if(ctx) {
 			ctx.drawImage(srcCanvas, 0, 0, this.tileW, this.tileH,
@@ -100,10 +105,7 @@ export class View {
 				this.tileW,this.tileH);
 		}
 	}
-	/** @param {CanvasRenderingContext2D} ctx
-	 *  @param {number} dx
-	 *  @param {number} dy */
-	clearHex(ctx, dx, dy) {	// similar to clearRect
+	clearHex(ctx: CanvasRenderingContext2D, dx: number, dy: number) {	// similar to clearRect
 		if(dy%2==1) dx += 0.5;		
 		if(this.hexTileMask == null) this.generateHexTileMask();
 		let data = ctx.getImageData(Math.floor(this.tileW*dx), this.tileVO*dy, this.tileW, this.tileH);
@@ -113,8 +115,7 @@ export class View {
 		}
 		ctx.putImageData(data,Math.floor(this.tileW*dx),this.tileVO*dy);
 	}
-	/** @returns {HTMLCanvasElement} */
-	getHexCanvas(colorIdx = PALETTE_ANNEX+2) {
+	getHexCanvas(colorIdx = PALETTE_ANNEX+2): HTMLCanvasElement {
 		const key = colorIdx+65536;	// allowing 16 bits for line tile cache
 		if(this.canvasCache.has(key)) {
 			return this.canvasCache.get(key);
@@ -150,8 +151,8 @@ export class View {
 		this.canvasCache.set(key,canvas);
 		return canvas;
 	}
-	/** @param {CanvasRenderingContext2D} ctx */
-	applyHexTileMask(ctx) {			// apply non-anti-aliased mask
+
+	applyHexTileMask(ctx: CanvasRenderingContext2D) {			// apply non-anti-aliased mask
 		if(this.hexTileMask == null) this.generateHexTileMask();
 		let data = ctx.getImageData(0, 0, this.tileW, this.tileH);
 		for(let i=0; i<this.tileW*this.tileH; i++) {
@@ -160,8 +161,8 @@ export class View {
 		}
 		ctx.putImageData(data,0,0);		
 	}
-	/** @param {CanvasRenderingContext2D} ctx */
-	applyHexTileBorderMask(ctx) {	// apply mask only to force transparent corners
+
+	applyHexTileBorderMask(ctx: CanvasRenderingContext2D) {	// apply mask only to force transparent corners
 		if(this.hexTileMask == null) this.generateHexTileMask();
 		let data = ctx.getImageData(0, 0, this.tileW, this.tileH);
 		for(let i=0; i<this.tileW*this.tileH; i++) {
@@ -191,10 +192,8 @@ export class View {
 		// save it
 		this.hexTileMask = mask;
 	}
-	/** @param {number[]} conns
-	 *  @param {number} colorIdx
-	 *  @returns {HTMLCanvasElement} */
-	getLineCanvas(conns, colorIdx) {
+
+	getLineCanvas(conns: number[], colorIdx: number): HTMLCanvasElement {
 		// Use 2d context line drawing functions.
 		// check if it is in cache
 		// create key

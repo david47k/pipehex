@@ -1,4 +1,4 @@
-/* index.js
+/* index.ts
  * Entry point. Initialise event handlers, initialise gameManager.
  * Copyright 2022 David Atkinson <david47k@d47.co>
  */
@@ -67,8 +67,7 @@ document.getElementById("stats_button").addEventListener('click', function (ev) 
 let sgs = document.getElementById("settings_game_size");
 Array.prototype.forEach.call(sgs.children, (el) => {
     el.addEventListener('click', 
-        /** @param {Event} ev */
-        function (ev) {
+        function (ev: Event) {
         const s = Number.parseInt(el.getAttribute('data'));
         gameManager.setSize(s);
     });
@@ -76,8 +75,7 @@ Array.prototype.forEach.call(sgs.children, (el) => {
 
 
 ;(function () {
-    /** @param {number} ts */
-    function main(ts) {
+    function main(ts: number) {
         //gameManager.stopMain = window.requestAnimationFrame(main);
         window.requestAnimationFrame(main);
         gameManager.render(ts);
