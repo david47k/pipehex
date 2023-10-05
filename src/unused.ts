@@ -1,6 +1,8 @@
 /* unused.ts
  * Unused methods / data that may come in handy in future.
+ *
  * Copyright 2022 David Atkinson <david47k@d47.co>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 /* from view.js */

@@ -1,6 +1,8 @@
 /* game.ts
  * The game/puzzle, loading methods, game state, interactions etc.
+ *
  * Copyright 2022 David Atkinson <david47k@d47.co>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Timer } from './timer.js';

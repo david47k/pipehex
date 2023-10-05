@@ -1,6 +1,8 @@
 /* view.ts
  * The view of the game, rendered to the HTML document / DOM.
+ *
  * Copyright 2022 David Atkinson <david47k@d47.co>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Tile }  from './tile.js';

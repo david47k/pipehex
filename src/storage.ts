@@ -1,4 +1,9 @@
-/* Copyright 2022 David Atkinson */
+/* storage.ts
+ * Save game data to semi-persistant storage (localStorage)
+ *
+ * Copyright 2022 David Atkinson <david47k@d47.co>
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
 const prefix = 'phex_';
 

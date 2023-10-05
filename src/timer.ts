@@ -1,8 +1,9 @@
 /* timer.ts
  * A simple timer, with string converstion function.
+ *
  * Copyright 2022 David Atkinson <david47k@d47.co>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
 
 export function timestringFrom(ms: number) {
 	let s = Math.trunc(ms / 1000);

@@ -1,6 +1,8 @@
 /* index.ts
  * Entry point. Initialise event handlers, initialise gameManager.
+ *
  * Copyright 2022 David Atkinson <david47k@d47.co>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { GameManager, gameManager } from './game-manager.js';
